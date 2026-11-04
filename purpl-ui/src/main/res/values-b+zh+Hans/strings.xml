@@ -1,0 +1,26 @@
+<resources>
+    <string name="purpl_no_products">目前没有可购买的商品，请稍后重试。</string>
+    <string name="purpl_retry">重试</string>
+    <string name="purpl_continue">继续</string>
+    <string name="purpl_restore">恢复购买</string>
+    <string name="purpl_privacy">隐私政策</string>
+    <string name="purpl_terms">使用条款</string>
+    <string name="purpl_renewal_notice">订阅会自动续订。你可以随时在 Google Play 中管理或取消。</string>
+    <string name="purpl_pending">正在等待付款完成。付款完成后将激活购买内容。</string>
+    <string name="purpl_purchased">购买成功。</string>
+    <string name="purpl_restored">购买已恢复。</string>
+    <string name="purpl_no_purchases">没有可恢复的购买。</string>
+    <string name="purpl_network_error">请检查网络连接后重试。</string>
+    <string name="purpl_billing_error">无法使用 Google Play 购买。请检查 Play 商店及登录状态。</string>
+    <string name="purpl_purchase_error">未能完成购买，请重试。</string>
+    <string name="purpl_in_progress">正在处理另一笔购买。</string>
+    <string name="purpl_one_time">一次性</string>
+    <string name="purpl_years">%1$d年</string>
+    <string name="purpl_months">%1$d个月</string>
+    <string name="purpl_weeks">%1$d周</string>
+    <string name="purpl_days">%1$d天</string>
+    <string name="purpl_recurring_price">每%2$s %1$s</string>
+    <string name="purpl_intro_price">每%2$s %1$s，共%3$d次</string>
+    <string name="purpl_current_plan">使用中</string>
+    <string name="purpl_current_period_unknown">你已订阅此商品。目前无法确认计费周期。请恢复购买后重试。</string>
+</resources>

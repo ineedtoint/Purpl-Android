@@ -1,0 +1,26 @@
+<resources>
+    <string name="purpl_no_products">現在購入できる商品はありません。しばらくしてからもう一度お試しください。</string>
+    <string name="purpl_retry">再試行</string>
+    <string name="purpl_continue">続ける</string>
+    <string name="purpl_restore">購入を復元</string>
+    <string name="purpl_privacy">プライバシーポリシー</string>
+    <string name="purpl_terms">利用規約</string>
+    <string name="purpl_renewal_notice">定期購入は自動更新されます。Google Playでいつでも管理・解約できます。</string>
+    <string name="purpl_pending">お支払いの完了を待っています。完了後に購入内容が反映されます。</string>
+    <string name="purpl_purchased">購入が完了しました。</string>
+    <string name="purpl_restored">購入を復元しました。</string>
+    <string name="purpl_no_purchases">復元できる購入はありません。</string>
+    <string name="purpl_network_error">接続を確認して、もう一度お試しください。</string>
+    <string name="purpl_billing_error">Google Playで購入を利用できません。Playストアとログイン状態を確認してください。</string>
+    <string name="purpl_purchase_error">購入を完了できませんでした。もう一度お試しください。</string>
+    <string name="purpl_in_progress">別の購入を処理しています。</string>
+    <string name="purpl_one_time">買い切り</string>
+    <string name="purpl_years">%1$d年</string>
+    <string name="purpl_months">%1$dか月</string>
+    <string name="purpl_weeks">%1$d週間</string>
+    <string name="purpl_days">%1$d日</string>
+    <string name="purpl_recurring_price">%2$sごとに%1$s</string>
+    <string name="purpl_intro_price">%2$sごとに%1$s（%3$d回）</string>
+    <string name="purpl_current_plan">利用中</string>
+    <string name="purpl_current_period_unknown">この商品を購読中です。現在の請求期間を確認できません。購入を復元して再確認してください。</string>
+</resources>

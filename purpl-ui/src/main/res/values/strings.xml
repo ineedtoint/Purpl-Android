@@ -1,0 +1,26 @@
+<resources>
+    <string name="purpl_no_products">Purchases are currently unavailable. Please try again later.</string>
+    <string name="purpl_retry">Try again</string>
+    <string name="purpl_continue">Continue</string>
+    <string name="purpl_restore">Restore purchases</string>
+    <string name="purpl_privacy">Privacy policy</string>
+    <string name="purpl_terms">Terms of service</string>
+    <string name="purpl_renewal_notice">Subscriptions renew automatically unless canceled. You can manage or cancel your subscription in Google Play.</string>
+    <string name="purpl_pending">Your payment is pending. Access will be updated after payment is completed.</string>
+    <string name="purpl_purchased">Your purchase is complete.</string>
+    <string name="purpl_restored">Your purchases have been restored.</string>
+    <string name="purpl_no_purchases">No active purchases were found for this Google Play account.</string>
+    <string name="purpl_network_error">Unable to connect. Please check your connection and try again.</string>
+    <string name="purpl_billing_error">Google Play purchases are unavailable. Please check that you are signed in to Google Play.</string>
+    <string name="purpl_purchase_error">Unable to complete this request. Please try again later.</string>
+    <string name="purpl_in_progress">Another purchase is already in progress.</string>
+    <string name="purpl_one_time">One-time purchase</string>
+    <string name="purpl_years">%1$d year(s)</string>
+    <string name="purpl_months">%1$d month(s)</string>
+    <string name="purpl_weeks">%1$d week(s)</string>
+    <string name="purpl_days">%1$d day(s)</string>
+    <string name="purpl_recurring_price">%1$s every %2$s</string>
+    <string name="purpl_intro_price">%1$s per %2$s for %3$d period(s)</string>
+    <string name="purpl_current_plan">Current subscription</string>
+    <string name="purpl_current_period_unknown">You have an active subscription to this product. Your current billing period could not be verified. Please restore purchases to check again.</string>
+</resources>

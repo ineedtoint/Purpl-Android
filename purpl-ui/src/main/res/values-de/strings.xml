@@ -1,0 +1,26 @@
+<resources>
+    <string name="purpl_no_products">Zurzeit sind keine Produkte verfügbar. Bitte versuche es später erneut.</string>
+    <string name="purpl_retry">Erneut versuchen</string>
+    <string name="purpl_continue">Weiter</string>
+    <string name="purpl_restore">Käufe wiederherstellen</string>
+    <string name="purpl_privacy">Datenschutz</string>
+    <string name="purpl_terms">Nutzungsbedingungen</string>
+    <string name="purpl_renewal_notice">Abonnements verlängern sich automatisch. Du kannst sie jederzeit bei Google Play verwalten oder kündigen.</string>
+    <string name="purpl_pending">Die Zahlung steht noch aus. Dein Kauf wird nach Zahlungseingang aktiviert.</string>
+    <string name="purpl_purchased">Kauf abgeschlossen.</string>
+    <string name="purpl_restored">Käufe wiederhergestellt.</string>
+    <string name="purpl_no_purchases">Keine Käufe zum Wiederherstellen.</string>
+    <string name="purpl_network_error">Prüfe deine Verbindung und versuche es erneut.</string>
+    <string name="purpl_billing_error">Google Play-Käufe sind nicht verfügbar. Prüfe den Play Store und deine Anmeldung.</string>
+    <string name="purpl_purchase_error">Der Kauf konnte nicht abgeschlossen werden. Bitte versuche es erneut.</string>
+    <string name="purpl_in_progress">Ein anderer Kauf wird gerade bearbeitet.</string>
+    <string name="purpl_one_time">Einmalig</string>
+    <string name="purpl_years">%1$d Jahr(e)</string>
+    <string name="purpl_months">%1$d Monat(e)</string>
+    <string name="purpl_weeks">%1$d Woche(n)</string>
+    <string name="purpl_days">%1$d Tag(e)</string>
+    <string name="purpl_recurring_price">%1$s pro %2$s</string>
+    <string name="purpl_intro_price">%1$s pro %2$s, %3$d-mal</string>
+    <string name="purpl_current_plan">Aktives Abonnement</string>
+    <string name="purpl_current_period_unknown">Du hast ein aktives Abonnement für dieses Produkt. Der aktuelle Abrechnungszeitraum konnte nicht überprüft werden. Stelle die Käufe wieder her, um es erneut zu versuchen.</string>
+</resources>

@@ -1,0 +1,26 @@
+<resources>
+    <string name="purpl_no_products">현재 구매할 수 있는 상품이 없어요. 잠시 후 다시 확인해 주세요.</string>
+    <string name="purpl_retry">다시 시도</string>
+    <string name="purpl_continue">계속하기</string>
+    <string name="purpl_restore">구매 복원</string>
+    <string name="purpl_privacy">개인정보 처리방침</string>
+    <string name="purpl_terms">서비스 약관</string>
+    <string name="purpl_renewal_notice">구독은 취소하기 전까지 자동으로 갱신됩니다. Google Play에서 언제든지 구독을 관리하거나 취소할 수 있습니다.</string>
+    <string name="purpl_pending">결제가 대기 중이에요. 결제가 완료되면 이용 상태가 갱신됩니다.</string>
+    <string name="purpl_purchased">구매가 완료되었어요.</string>
+    <string name="purpl_restored">구매 내역을 복원했어요.</string>
+    <string name="purpl_no_purchases">이 Google Play 계정에서 이용 중인 구매 내역을 찾지 못했어요.</string>
+    <string name="purpl_network_error">연결하지 못했어요. 네트워크를 확인하고 다시 시도해 주세요.</string>
+    <string name="purpl_billing_error">Google Play 결제를 사용할 수 없어요. Google Play 로그인 상태를 확인해 주세요.</string>
+    <string name="purpl_purchase_error">요청을 완료하지 못했어요. 잠시 후 다시 시도해 주세요.</string>
+    <string name="purpl_in_progress">다른 구매가 진행 중이에요.</string>
+    <string name="purpl_one_time">일회성 구매</string>
+    <string name="purpl_years">%1$d년</string>
+    <string name="purpl_months">%1$d개월</string>
+    <string name="purpl_weeks">%1$d주</string>
+    <string name="purpl_days">%1$d일</string>
+    <string name="purpl_recurring_price">%2$s마다 %1$s</string>
+    <string name="purpl_intro_price">%2$s마다 %1$s, %3$d회 적용</string>
+    <string name="purpl_current_plan">이용 중</string>
+    <string name="purpl_current_period_unknown">이 상품을 구독 중이에요. 현재 결제 주기를 확인할 수 없어요. 구매 복원으로 다시 확인해 주세요.</string>
+</resources>
