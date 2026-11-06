@@ -39,7 +39,7 @@ jobs:
           cache: gradle
 
       - name: Android SDK 플랫폼 설치
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37"'
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0"'
 
       - name: GitHub Pages 구성
         uses: actions/configure-pages@v6
