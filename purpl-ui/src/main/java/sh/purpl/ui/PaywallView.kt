@@ -144,8 +144,7 @@ public fun PaywallView(
                 }
                 items(options, key = { it.identifier }) { option ->
                     val display = state.configuration?.displayContent(option)
-                    val productTitle = display?.title ?: option.title
-                    val title = if (option.kind == ProductKind.Subscription) "$productTitle · ${billingPeriodText(option.billingPeriod)}" else productTitle
+                    val title = display?.title ?: option.title
                     val context = PaywallProductContext(option, option.identifier == selected?.identifier, !state.busy, title, display?.description,
                         isOwned = purchaseOwnership(option, state.customerInfo) == PaywallPurchaseOwnership.Owned)
                     if (productCard != null) productCard(context) { model.select(option.identifier) }
