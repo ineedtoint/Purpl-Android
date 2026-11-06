@@ -2,6 +2,8 @@ package sh.purpl.ui
 
 import androidx.annotation.StringRes
 import sh.purpl.PaywallProductDisplayContent
+import sh.purpl.PaywallPurchaseOptionDisplayContent
+import sh.purpl.StorePurchaseOption
 import sh.purpl.PurchaseCatalog
 import sh.purpl.ResolvedPaywallConfiguration
 
@@ -27,9 +29,22 @@ public data class PaywallConfiguration(
     // 이용 약관 주소
     /** The terms of service URL. */
     val termsOfServiceUrl: String? = null,
+    /// 기본 요금제 카드별 선택 표시 문구
+    val purchaseOptionDisplayContents: List<PaywallPurchaseOptionDisplayContent> = emptyList(),
 ) {
     init {
         require(defaultPurchaseOptionIdentifier == null || catalog.options.any { it.identifier == defaultPurchaseOptionIdentifier })
+    }
+
+    /// 카탈로그의 카드 종류에 따라 표시 문구를 조회하고 스토어 제목으로 보완
+    internal fun displayContent(option: StorePurchaseOption): PaywallPurchaseOptionDisplayContent {
+        val catalogOption = catalog.options.firstOrNull { it.identifier == option.identifier } ?: option.option
+        if (catalogOption.basePlanIdentifier != null) {
+            return purchaseOptionDisplayContents.firstOrNull { it.purchaseOptionIdentifier == option.identifier }
+                ?: PaywallPurchaseOptionDisplayContent(option.identifier, title = option.title)
+        }
+        val productContent = productDisplayContents.firstOrNull { it.productIdentifier == catalogOption.productIdentifier }
+        return PaywallPurchaseOptionDisplayContent(option.identifier, productContent?.title ?: option.title, productContent?.description)
     }
 
     public companion object {
@@ -38,6 +53,7 @@ public data class PaywallConfiguration(
             catalog = configuration.catalog,
             defaultPurchaseOptionIdentifier = configuration.defaultPurchaseOptionIdentifier,
             productDisplayContents = configuration.productDisplayContents,
+            purchaseOptionDisplayContents = configuration.purchaseOptionDisplayContents,
             purchaseNoticeText = configuration.purchaseNotice,
             privacyPolicyUrl = configuration.privacyPolicyUrl,
             termsOfServiceUrl = configuration.termsOfServiceUrl,

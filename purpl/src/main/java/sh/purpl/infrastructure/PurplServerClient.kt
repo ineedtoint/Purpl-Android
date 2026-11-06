@@ -120,6 +120,9 @@ internal fun decodePaywall(response: JSONObject): ResolvedPaywallConfiguration =
         ),
         defaultPurchaseOptionIdentifier = paywall.optionalString("defaultPurchaseOptionIdentifier"),
         productDisplayContents = localization?.optJSONArray("products")?.objects().orEmpty().map { PaywallProductDisplayContent(it.getString("productIdentifier"), it.optionalString("title"), it.optionalString("description")) },
+        purchaseOptionDisplayContents = localization?.optJSONArray("purchaseOptions")?.objects().orEmpty().map {
+            PaywallPurchaseOptionDisplayContent(it.getString("purchaseOptionIdentifier"), it.optionalString("title"), it.optionalString("description"))
+        },
         purchaseNotice = localization?.optionalString("purchaseNotice"),
         privacyPolicyUrl = policy?.optionalString("privacyPolicyURL"), termsOfServiceUrl = policy?.optionalString("termsOfServiceURL"),
     )
@@ -131,7 +134,9 @@ internal fun encodePaywall(value: ResolvedPaywallConfiguration): String = JSONOb
         .put("products", JSONArray(value.purchaseConfiguration.products.map { JSONObject().put("productIdentifier", it.productIdentifier).put("entitlementIdentifiers", JSONArray(it.entitlementIdentifiers.toList())).put("productKind", if (it.kind == ProductKind.Subscription) "subscription" else "one_time_product") })))
     put("catalog", JSONObject().put("identifier", value.catalog.identifier).put("purchaseOptions", JSONArray(value.catalog.options.map { JSONObject().put("identifier", it.identifier).put("productIdentifier", it.productIdentifier).put("basePlanIdentifier", it.basePlanIdentifier).put("offerIdentifier", it.offerIdentifier) })))
     put("paywallConfiguration", JSONObject().put("defaultPurchaseOptionIdentifier", value.defaultPurchaseOptionIdentifier))
-    put("localization", JSONObject().put("purchaseNotice", value.purchaseNotice).put("products", JSONArray(value.productDisplayContents.map { JSONObject().put("productIdentifier", it.productIdentifier).put("title", it.title).put("description", it.description) })))
+    put("localization", JSONObject().put("purchaseNotice", value.purchaseNotice)
+        .put("products", JSONArray(value.productDisplayContents.map { JSONObject().put("productIdentifier", it.productIdentifier).put("title", it.title).put("description", it.description) }))
+        .put("purchaseOptions", JSONArray(value.purchaseOptionDisplayContents.map { JSONObject().put("purchaseOptionIdentifier", it.purchaseOptionIdentifier).put("title", it.title).put("description", it.description) })))
     put("policy", JSONObject().put("privacyPolicyURL", value.privacyPolicyUrl).put("termsOfServiceURL", value.termsOfServiceUrl))
 }.toString()
 

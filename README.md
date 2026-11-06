@@ -140,6 +140,8 @@ PaywallView(purchases = purchases, paywallIdentifier = "standard") {
 
 Remote configuration is resolved using the app's package name, paywall identifier, and locale. Purpl supplies the catalog, product-to-entitlement mapping, localized content, purchase notices, and policy links. Google Play still handles product loading, pricing, availability, and purchases. Do not put Google service account credentials in the app.
 
+Google base-plan cards use `purchaseOptionDisplayContents`, matched by `purchaseOptionIdentifier` (`productId:basePlanId[:offerId]`). Cards configured without a base plan keep using `productDisplayContents`, matched by product ID. A missing card title falls back to the Google Play product title.
+
 To provide a local paywall while remote configuration is loading or unavailable, pass the app's catalog as `configuration` alongside `paywallIdentifier`.
 
 ```kotlin

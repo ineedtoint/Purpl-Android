@@ -62,10 +62,22 @@ class PurplServerClientTest {
         val configuration = ResolvedPaywallConfiguration(
             PurchaseCatalog("main", listOf(PurchaseOption("pro.monthly", "pro", "monthly"), PurchaseOption("pro.yearly", "pro", "yearly"), PurchaseOption("lifetime", "lifetime"))),
             PurchaseConfiguration(listOf(PurchaseEntitlement("pro")), listOf(PurchaseProduct("pro", setOf("pro")), PurchaseProduct("lifetime", emptySet(), ProductKind.NonConsumable))),
+            productDisplayContents = listOf(PaywallProductDisplayContent("lifetime", "평생 이용")),
+            purchaseOptionDisplayContents = listOf(
+                PaywallPurchaseOptionDisplayContent("pro.monthly", "월간", "매월 결제"),
+                PaywallPurchaseOptionDisplayContent("pro.yearly", "연간", "매년 결제"),
+            ),
             purchaseNotice = "구독은 취소 전까지 갱신됩니다.",
             defaultPurchaseOptionIdentifier = "pro.yearly", privacyPolicyUrl = "https://example.com/privacy", termsOfServiceUrl = "https://example.com/terms",
         )
         assertEquals(configuration, decodePaywall(JSONObject(encodePaywall(configuration))))
+    }
+
+    /// 옵션별 표시 문구가 없는 기존 응답과 캐시도 정상 해석
+    @Test fun missingOptionDisplayContentsRemainEmpty() {
+        val response = JSONObject(encodePaywall(paywallConfiguration()))
+        response.getJSONObject("localization").remove("purchaseOptions")
+        assertTrue(decodePaywall(response).purchaseOptionDisplayContents.isEmpty())
     }
 
     /// 새 결제 안내만 읽고 누락과 null에 기본 문구를 적용하지 않음

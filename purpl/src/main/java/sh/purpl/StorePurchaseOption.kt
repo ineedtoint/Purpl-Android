@@ -67,6 +67,16 @@ public data class PaywallProductDisplayContent(
     val description: String? = null,
 )
 
+/// 원격 페이월 구매 옵션 카드별 표시 문구
+public data class PaywallPurchaseOptionDisplayContent(
+    /// 상품과 기본 요금제 및 선택 혜택으로 구성한 구매 옵션 식별자
+    val purchaseOptionIdentifier: String,
+    /// 선택 표시 제목
+    val title: String? = null,
+    /// 선택 표시 설명
+    val description: String? = null,
+)
+
 // 로컬 또는 원격에서 해석한 공통 페이월 구성
 /** A paywall configuration resolved from local or remote sources. */
 public data class ResolvedPaywallConfiguration(
@@ -90,6 +100,8 @@ public data class ResolvedPaywallConfiguration(
     // 이용 약관 주소
     /** The terms of service URL. */
     val termsOfServiceUrl: String? = null,
+    /// 기본 요금제 카드별 선택 표시 문구
+    val purchaseOptionDisplayContents: List<PaywallPurchaseOptionDisplayContent> = emptyList(),
 )
 
 // 식별자와 언어별 원격 페이월 갱신 결과

@@ -143,7 +143,7 @@ public fun PaywallView(
                     TextButton(onClick = { scope.launch { model.load() } }, modifier = Modifier.fillMaxWidth(), enabled = !state.busy) { Text(stringResource(R.string.purpl_retry)) }
                 }
                 items(options, key = { it.identifier }) { option ->
-                    val display = state.configuration?.productDisplayContents?.firstOrNull { it.productIdentifier == option.option.productIdentifier }
+                    val display = state.configuration?.displayContent(option)
                     val productTitle = display?.title ?: option.title
                     val title = if (option.kind == ProductKind.Subscription) "$productTitle · ${billingPeriodText(option.billingPeriod)}" else productTitle
                     val context = PaywallProductContext(option, option.identifier == selected?.identifier, !state.busy, title, display?.description,
