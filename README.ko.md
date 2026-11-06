@@ -136,7 +136,9 @@ PaywallView(purchases = purchases, paywallIdentifier = "standard") {
 }
 ```
 
-원격 구성은 앱의 패키지 이름, 페이월 식별자와 현재 언어로 조회합니다. Purpl은 카탈로그, 상품·권한 매핑, 현지화된 내용, 자동 갱신 안내와 정책 링크를 제공합니다. 실제 상품 조회, 가격, 구매 가능 여부와 구매는 Google Play가 처리합니다. Google 서비스 계정 자격 증명은 앱에 넣지 않습니다.
+원격 구성은 앱의 패키지 이름, 페이월 식별자와 현재 언어로 조회합니다. Purpl은 카탈로그, 상품·권한 매핑, 현지화된 내용, 결제 안내와 정책 링크를 제공합니다. 실제 상품 조회, 가격, 구매 가능 여부와 구매는 Google Play가 처리합니다. Google 서비스 계정 자격 증명은 앱에 넣지 않습니다.
+
+`PaywallConfiguration`의 `purchaseNoticeResource` 또는 `purchaseNoticeText`로 결제 안내를 지정합니다. 둘 다 있으면 리소스를 우선합니다. SDK 기본 문구는 없으며, 비어 있지 않은 안내는 상품 종류와 관계없이 하단 고정 영역의 결제 버튼 위에 표시합니다. 버튼 아래에는 구매 복원·약관 링크를 표시합니다. 원격 `purchaseNotice`가 비어 있거나 없어도 로컬 안내를 해당 값으로 교체합니다.
 
 원격 구성이 로딩 중이거나 사용할 수 없을 때 로컬 페이월을 제공하려면 `paywallIdentifier`와 함께 앱의 카탈로그를 `configuration`으로 전달합니다.
 

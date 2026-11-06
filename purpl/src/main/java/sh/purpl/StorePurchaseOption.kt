@@ -82,9 +82,8 @@ public data class ResolvedPaywallConfiguration(
     // 상품별 선택 표시 문구
     /** Optional display text for each product. */
     val productDisplayContents: List<PaywallProductDisplayContent> = emptyList(),
-    // 선택 자동 갱신 안내 문구
-    /** An optional auto-renewal notice. */
-    val autoRenewalNotice: String? = null,
+    /// 선택 결제 안내 문구
+    val purchaseNotice: String? = null,
     // 개인정보 처리방침 주소
     /** The privacy policy URL. */
     val privacyPolicyUrl: String? = null,

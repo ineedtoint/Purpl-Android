@@ -1,5 +1,6 @@
 package sh.purpl.ui
 
+import androidx.annotation.StringRes
 import sh.purpl.PaywallProductDisplayContent
 import sh.purpl.PurchaseCatalog
 import sh.purpl.ResolvedPaywallConfiguration
@@ -16,9 +17,10 @@ public data class PaywallConfiguration(
     // 상품별 선택 표시 문구
     /** Optional display text for each product. */
     val productDisplayContents: List<PaywallProductDisplayContent> = emptyList(),
-    // 선택 자동 갱신 안내 문구
-    /** An optional auto-renewal notice. */
-    val autoRenewalNotice: String? = null,
+    /// 직접 지정한 문자열보다 우선하는 결제 안내 리소스
+    @StringRes val purchaseNoticeResource: Int? = null,
+    /// 현지화가 완료된 결제 안내 문구
+    val purchaseNoticeText: String? = null,
     // 개인정보 처리방침 주소
     /** The privacy policy URL. */
     val privacyPolicyUrl: String? = null,
@@ -31,13 +33,12 @@ public data class PaywallConfiguration(
     }
 
     public companion object {
-        // 원격 페이월에서 화면 표시 구성 생성
-        /** Creates a paywall configuration from a resolved remote paywall. */
+        /// 원격 페이월에서 화면 표시 구성 생성
         public fun from(configuration: ResolvedPaywallConfiguration): PaywallConfiguration = PaywallConfiguration(
             catalog = configuration.catalog,
             defaultPurchaseOptionIdentifier = configuration.defaultPurchaseOptionIdentifier,
             productDisplayContents = configuration.productDisplayContents,
-            autoRenewalNotice = configuration.autoRenewalNotice,
+            purchaseNoticeText = configuration.purchaseNotice,
             privacyPolicyUrl = configuration.privacyPolicyUrl,
             termsOfServiceUrl = configuration.termsOfServiceUrl,
         )

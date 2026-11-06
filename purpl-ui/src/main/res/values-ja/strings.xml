@@ -5,7 +5,6 @@
     <string name="purpl_restore">購入を復元</string>
     <string name="purpl_privacy">プライバシーポリシー</string>
     <string name="purpl_terms">利用規約</string>
-    <string name="purpl_renewal_notice">定期購入は自動更新されます。Google Playでいつでも管理・解約できます。</string>
     <string name="purpl_pending">お支払いの完了を待っています。完了後に購入内容が反映されます。</string>
     <string name="purpl_purchased">購入が完了しました。</string>
     <string name="purpl_restored">購入を復元しました。</string>

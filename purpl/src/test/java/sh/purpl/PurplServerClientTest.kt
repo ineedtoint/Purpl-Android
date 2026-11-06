@@ -62,9 +62,24 @@ class PurplServerClientTest {
         val configuration = ResolvedPaywallConfiguration(
             PurchaseCatalog("main", listOf(PurchaseOption("pro.monthly", "pro", "monthly"), PurchaseOption("pro.yearly", "pro", "yearly"), PurchaseOption("lifetime", "lifetime"))),
             PurchaseConfiguration(listOf(PurchaseEntitlement("pro")), listOf(PurchaseProduct("pro", setOf("pro")), PurchaseProduct("lifetime", emptySet(), ProductKind.NonConsumable))),
+            purchaseNotice = "구독은 취소 전까지 갱신됩니다.",
             defaultPurchaseOptionIdentifier = "pro.yearly", privacyPolicyUrl = "https://example.com/privacy", termsOfServiceUrl = "https://example.com/terms",
         )
         assertEquals(configuration, decodePaywall(JSONObject(encodePaywall(configuration))))
+    }
+
+    /// 새 결제 안내만 읽고 누락과 null에 기본 문구를 적용하지 않음
+    @Test fun purchaseNoticeUsesOnlyTheNewField() {
+        val response = JSONObject(encodePaywall(paywallConfiguration().copy(purchaseNotice = "결제 안내")))
+        val localization = response.getJSONObject("localization")
+        assertEquals("결제 안내", localization.getString("purchaseNotice"))
+        assertFalse(localization.has("autoRenewalNotice"))
+        localization.put("autoRenewalNotice", "이전 안내")
+        assertEquals("결제 안내", decodePaywall(response).purchaseNotice)
+        localization.put("purchaseNotice", JSONObject.NULL)
+        assertNull(decodePaywall(response).purchaseNotice)
+        localization.remove("purchaseNotice")
+        assertNull(decodePaywall(response).purchaseNotice)
     }
 
     /// 상품 기본값과 옵션 순서에 관계없이 명시한 연간 옵션 유지

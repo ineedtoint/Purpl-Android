@@ -119,6 +119,9 @@ public fun PaywallView(
     val uriHandler = LocalUriHandler.current
     val options = state.options.filter(isIncluded)
     val selected = options.firstOrNull { it.identifier == state.selectedOptionIdentifier } ?: options.firstOrNull()
+    val purchaseNoticeText = state.configuration?.let { configuration ->
+        configuration.purchaseNoticeResource?.let { stringResource(it) } ?: configuration.purchaseNoticeText
+    }
     val ownership = selected?.let { purchaseOwnership(it, state.customerInfo) } ?: PaywallPurchaseOwnership.Available
     val tint = style.tintColor.takeUnless { it == Color.Unspecified } ?: MaterialTheme.colorScheme.primary
     val background = style.containerColor.takeUnless { it == Color.Unspecified } ?: MaterialTheme.colorScheme.background
@@ -129,41 +132,49 @@ public fun PaywallView(
     LaunchedEffect(selected?.identifier) { selected?.let { model.select(it.identifier) } }
 
     Surface(modifier, color = background) {
-        LazyColumn(contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            item { Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, content = content) }
-            if (state.loading) item {
-                Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = tint) }
-            }
-            if (!state.loading && options.isEmpty() && state.error == null) item {
-                Text(stringResource(R.string.purpl_no_products), Modifier.fillMaxWidth().padding(vertical = 24.dp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = { scope.launch { model.load() } }, modifier = Modifier.fillMaxWidth(), enabled = !state.busy) { Text(stringResource(R.string.purpl_retry)) }
-            }
-            items(options, key = { it.identifier }) { option ->
-                val display = state.configuration?.productDisplayContents?.firstOrNull { it.productIdentifier == option.option.productIdentifier }
-                val productTitle = display?.title ?: option.title
-                val title = if (option.kind == ProductKind.Subscription) "$productTitle · ${billingPeriodText(option.billingPeriod)}" else productTitle
-                val context = PaywallProductContext(option, option.identifier == selected?.identifier, !state.busy, title, display?.description,
-                    isOwned = purchaseOwnership(option, state.customerInfo) == PaywallPurchaseOwnership.Owned)
-                if (productCard != null) productCard(context) { model.select(option.identifier) }
-                else DefaultPaywallProductCard(context, tint, cardColor) { model.select(option.identifier) }
-            }
-            state.error?.let { error -> item {
-                Text(purchaseErrorText(error), Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
-                TextButton(onClick = { scope.launch { model.load() } }, modifier = Modifier.fillMaxWidth(), enabled = !state.busy) { Text(stringResource(R.string.purpl_retry)) }
-            } }
-            state.notice?.let { notice -> item {
-                val message = when (notice) {
-                    PaywallNotice.Purchased -> R.string.purpl_purchased
-                    PaywallNotice.Pending -> R.string.purpl_pending
-                    PaywallNotice.Restored -> R.string.purpl_restored
-                    PaywallNotice.NoPurchases -> R.string.purpl_no_purchases
+        Column(Modifier.fillMaxSize()) {
+            LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                item { Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, content = content) }
+                if (state.loading) item {
+                    Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = tint) }
                 }
-                Text(stringResource(message), Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-            } }
-            if (ownership == PaywallPurchaseOwnership.UnknownBasePlan) item {
-                Text(stringResource(R.string.purpl_current_period_unknown), Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (!state.loading && options.isEmpty() && state.error == null) item {
+                    Text(stringResource(R.string.purpl_no_products), Modifier.fillMaxWidth().padding(vertical = 24.dp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    TextButton(onClick = { scope.launch { model.load() } }, modifier = Modifier.fillMaxWidth(), enabled = !state.busy) { Text(stringResource(R.string.purpl_retry)) }
+                }
+                items(options, key = { it.identifier }) { option ->
+                    val display = state.configuration?.productDisplayContents?.firstOrNull { it.productIdentifier == option.option.productIdentifier }
+                    val productTitle = display?.title ?: option.title
+                    val title = if (option.kind == ProductKind.Subscription) "$productTitle · ${billingPeriodText(option.billingPeriod)}" else productTitle
+                    val context = PaywallProductContext(option, option.identifier == selected?.identifier, !state.busy, title, display?.description,
+                        isOwned = purchaseOwnership(option, state.customerInfo) == PaywallPurchaseOwnership.Owned)
+                    if (productCard != null) productCard(context) { model.select(option.identifier) }
+                    else DefaultPaywallProductCard(context, tint, cardColor) { model.select(option.identifier) }
+                }
+                state.error?.let { error -> item {
+                    Text(purchaseErrorText(error), Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
+                    TextButton(onClick = { scope.launch { model.load() } }, modifier = Modifier.fillMaxWidth(), enabled = !state.busy) { Text(stringResource(R.string.purpl_retry)) }
+                } }
+                state.notice?.let { notice -> item {
+                    val message = when (notice) {
+                        PaywallNotice.Purchased -> R.string.purpl_purchased
+                        PaywallNotice.Pending -> R.string.purpl_pending
+                        PaywallNotice.Restored -> R.string.purpl_restored
+                        PaywallNotice.NoPurchases -> R.string.purpl_no_purchases
+                    }
+                    Text(stringResource(message), Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                } }
+                if (ownership == PaywallPurchaseOwnership.UnknownBasePlan) item {
+                    Text(stringResource(R.string.purpl_current_period_unknown), Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
-            item {
+            // 결제 안내와 구매 버튼, 구매 복원·약관 한 줄을 화면 아래에 고정
+            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                purchaseNoticeText?.takeIf { it.isNotBlank() }?.let { notice ->
+                    Text(notice, Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp),
+                        style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 Button(onClick = {
                     val purchaseActivity = activity
                     val option = selected
@@ -175,17 +186,22 @@ public fun PaywallView(
                     if (state.busy) CircularProgressIndicator(Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
                     else Text(stringResource(if (ownership == PaywallPurchaseOwnership.Available) R.string.purpl_continue else R.string.purpl_current_plan))
                 }
-            }
-            item {
-                if (selected?.kind == ProductKind.Subscription || state.configuration?.catalog?.options?.any { it.basePlanIdentifier != null } == true) Text(state.configuration?.autoRenewalNotice ?: stringResource(R.string.purpl_renewal_notice),
-                    Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = { scope.launch { model.restore() } }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.purpl_restore)) }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    state.configuration?.privacyPolicyUrl?.let { url -> TextButton(onClick = { uriHandler.openUri(url) }) { Text(stringResource(R.string.purpl_privacy)) } }
-                    state.configuration?.termsOfServiceUrl?.let { url -> TextButton(onClick = { uriHandler.openUri(url) }) { Text(stringResource(R.string.purpl_terms)) } }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    PaywallFooterLink(stringResource(R.string.purpl_restore), enabled = !state.busy) { scope.launch { model.restore() } }
+                    state.configuration?.termsOfServiceUrl?.let { url -> PaywallFooterLink(stringResource(R.string.purpl_terms)) { uriHandler.openUri(url) } }
+                    state.configuration?.privacyPolicyUrl?.let { url -> PaywallFooterLink(stringResource(R.string.purpl_privacy)) { uriHandler.openUri(url) } }
                 }
             }
         }
+    }
+}
+
+/// iOS PurplUI 하단 보조 동작처럼 작은 회색 글자의 텍스트 버튼
+@Composable
+private fun PaywallFooterLink(title: String, enabled: Boolean = true, onClick: () -> Unit) {
+    TextButton(onClick = onClick, enabled = enabled, contentPadding = PaddingValues(horizontal = 8.dp),
+        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)) {
+        Text(title, style = MaterialTheme.typography.labelMedium)
     }
 }
 

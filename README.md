@@ -121,6 +121,8 @@ val restoredCustomerInfo = purchases.restorePurchases()
 
 Observe `customerInfoFlow` for entitlement changes; its value is `null` before the first successful refresh. The `errors` flow reports background synchronization and acknowledgement failures. A failed query is not treated as an empty purchase history.
 
+Set `purchaseNoticeResource` or `purchaseNoticeText` on `PaywallConfiguration` to show a purchase notice. The localized resource takes precedence when both are supplied. There is no SDK default text: a nonblank notice appears above the purchase button in the fixed bottom area for any product type, followed by the restore and policy links. Remote `purchaseNotice` replaces the local notice, including when it is empty or absent.
+
 ## Purpl managed configuration
 
 To manage customer entitlements and paywall catalogs with the Purpl service, configure server mode and pass the paywall identifier defined on the web.
@@ -136,7 +138,7 @@ PaywallView(purchases = purchases, paywallIdentifier = "standard") {
 }
 ```
 
-Remote configuration is resolved using the app's package name, paywall identifier, and locale. Purpl supplies the catalog, product-to-entitlement mapping, localized content, renewal notices, and policy links. Google Play still handles product loading, pricing, availability, and purchases. Do not put Google service account credentials in the app.
+Remote configuration is resolved using the app's package name, paywall identifier, and locale. Purpl supplies the catalog, product-to-entitlement mapping, localized content, purchase notices, and policy links. Google Play still handles product loading, pricing, availability, and purchases. Do not put Google service account credentials in the app.
 
 To provide a local paywall while remote configuration is loading or unavailable, pass the app's catalog as `configuration` alongside `paywallIdentifier`.
 

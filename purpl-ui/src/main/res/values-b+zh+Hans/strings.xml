@@ -5,7 +5,6 @@
     <string name="purpl_restore">恢复购买</string>
     <string name="purpl_privacy">隐私政策</string>
     <string name="purpl_terms">使用条款</string>
-    <string name="purpl_renewal_notice">订阅会自动续订。你可以随时在 Google Play 中管理或取消。</string>
     <string name="purpl_pending">正在等待付款完成。付款完成后将激活购买内容。</string>
     <string name="purpl_purchased">购买成功。</string>
     <string name="purpl_restored">购买已恢复。</string>

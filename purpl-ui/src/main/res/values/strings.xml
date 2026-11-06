@@ -5,7 +5,6 @@
     <string name="purpl_restore">Restore purchases</string>
     <string name="purpl_privacy">Privacy policy</string>
     <string name="purpl_terms">Terms of service</string>
-    <string name="purpl_renewal_notice">Subscriptions renew automatically unless canceled. You can manage or cancel your subscription in Google Play.</string>
     <string name="purpl_pending">Your payment is pending. Access will be updated after payment is completed.</string>
     <string name="purpl_purchased">Your purchase is complete.</string>
     <string name="purpl_restored">Your purchases have been restored.</string>
