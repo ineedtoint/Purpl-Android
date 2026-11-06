@@ -16,23 +16,62 @@ import sh.purpl.Purchases
 import sh.purpl.StorePurchaseOption
 import sh.purpl.SubscriptionReplacement
 
-/// 페이월에서 표시하는 구매와 복원 결과
-public enum class PaywallNotice { Purchased, Pending, Restored, NoPurchases }
+// 페이월에서 표시하는 구매와 복원 결과
+/** Purchase and restoration results that the paywall displays. */
+public enum class PaywallNotice {
+    // 구매 완료
+    /** The purchase completed. */
+    Purchased,
+    // 결제 완료 대기
+    /** The purchase is waiting for payment to complete. */
+    Pending,
+    // 구매 복원 완료
+    /** Purchases were restored. */
+    Restored,
+    // 복원할 구매 없음
+    /** No purchases were found to restore. */
+    NoPurchases,
+}
 
-/// 구매 화면의 상품과 진행 상태
+// 구매 화면의 상품과 진행 상태
+/** The products and progress state of a paywall. */
 public data class PaywallState(
+    // 현재 표시 중인 페이월 구성
+    /** The paywall configuration currently displayed. */
     val configuration: PaywallConfiguration? = null,
+    // 스토어에서 조회한 구매 가능한 옵션
+    /** The purchase options currently available from the store. */
     val options: List<StorePurchaseOption> = emptyList(),
+    // 선택한 구매 옵션 식별자
+    /** The identifier of the selected purchase option. */
     val selectedOptionIdentifier: String? = null,
+    // 상품 조회 진행 여부
+    /** Whether products are loading. */
     val loading: Boolean = true,
+    // 구매 또는 복원 진행 여부
+    /** Whether a purchase or restoration is in progress. */
     val busy: Boolean = false,
+    // 마지막으로 발생한 오류
+    /** The most recent error, if any. */
     val error: Throwable? = null,
+    // 표시할 마지막 구매 또는 복원 결과
+    /** The most recent purchase or restoration result to display. */
     val notice: PaywallNotice? = null,
+    // 최신 고객 정보
+    /** The latest customer information. */
     val customerInfo: CustomerInfo? = null,
 )
 
-/// 로컬·원격 구성과 구매·복원의 화면 흐름 조율
+// 로컬·원격 구성과 구매·복원의 화면 흐름 조율
+/**
+ * Coordinates local and remote paywall configuration with the purchase and restoration flow.
+ *
+ * @param localConfiguration The local paywall configuration, or the fallback for a remote paywall.
+ * @param paywallIdentifier The remote paywall identifier created in Purpl.
+ */
 public class PaywallModel(
+    // 구매와 권한 확인에 사용하는 Purpl 인스턴스
+    /** The Purpl instance used for purchases and entitlement checks. */
     public val purchases: Purchases,
     private val localConfiguration: PaywallConfiguration? = null,
     private val paywallIdentifier: String? = null,
@@ -40,11 +79,14 @@ public class PaywallModel(
     private val mutableState = MutableStateFlow(PaywallState(configuration = localConfiguration, customerInfo = purchases.customerInfoFlow.value))
     private var loadingRequest = false
     private val productLoadMutex = Mutex()
+    // 현재 페이월 상태
+    /** The current paywall state. */
     public val state: StateFlow<PaywallState> = mutableState.asStateFlow()
 
     init { require(localConfiguration != null || paywallIdentifier != null) }
 
-    /// 로컬 폴백을 먼저 표시하고 원격 구성과 실제 스토어 상품 조회
+    // 로컬 폴백을 먼저 표시하고 원격 구성과 실제 스토어 상품 조회
+    /** Shows the local fallback first, then loads the remote configuration and actual store products. */
     public suspend fun load() {
         if (loadingRequest || state.value.busy) return
         loadingRequest = true
@@ -80,7 +122,8 @@ public class PaywallModel(
         }
     }
 
-    /// 캐시를 표시한 뒤 도착한 원격 페이월 변경 반영
+    // 캐시를 표시한 뒤 도착한 원격 페이월 변경 반영
+    /** Applies remote paywall changes that arrive after a cached configuration is shown. */
     public suspend fun observeConfigurationUpdates() {
         val identifier = paywallIdentifier ?: return
         purchases.paywallConfigurationUpdates.collect { update ->
@@ -92,21 +135,31 @@ public class PaywallModel(
         }
     }
 
-    /// 구매·복원·앱 복귀로 변경된 최신 고객 정보 반영
+    // 구매·복원·앱 복귀로 변경된 최신 고객 정보 반영
+    /** Applies the latest customer information after purchases, restoration, or returning to the app. */
     public suspend fun observeCustomerInfo() {
         purchases.customerInfoFlow.collect { customerInfo ->
             mutableState.value = mutableState.value.copy(customerInfo = customerInfo)
         }
     }
 
-    /// 현재 판매 가능한 구매 옵션 선택
+    // 현재 판매 가능한 구매 옵션 선택
+    /** Selects a purchase option that is currently available. */
     public fun select(identifier: String) {
         if (!state.value.busy && state.value.options.any { it.identifier == identifier }) {
             mutableState.value = state.value.copy(selectedOptionIdentifier = identifier, notice = null)
         }
     }
 
-    /// 선택한 옵션의 구매와 앱에서 정한 구독 교체 정책 적용
+    // 선택한 옵션의 구매와 앱에서 정한 구독 교체 정책 적용
+    /**
+     * Purchases an option, applying the subscription replacement policy chosen by the app.
+     *
+     * @param activity The activity that presents the purchase flow.
+     * @param option The purchase option to buy.
+     * @param replacement Returns the existing subscription to replace, or `null` for a new purchase.
+     * @return The purchase result, or `null` when the purchase did not start or failed. Failures are reported in [state].
+     */
     public suspend fun purchase(
         activity: Activity,
         option: StorePurchaseOption,
@@ -130,7 +183,12 @@ public class PaywallModel(
         finally { mutableState.value = state.value.copy(busy = false) }
     }
 
-    /// 보유 구매 복원과 최신 권한 결과 표시
+    // 보유 구매 복원과 최신 권한 결과 표시
+    /**
+     * Restores owned purchases and shows the latest entitlement result.
+     *
+     * @return The restored customer information, or `null` when restoration did not start or failed. Failures are reported in [state].
+     */
     public suspend fun restore(): CustomerInfo? {
         if (state.value.busy) return null
         mutableState.value = state.value.copy(busy = true, error = null, notice = null)

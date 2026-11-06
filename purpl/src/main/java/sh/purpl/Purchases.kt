@@ -19,7 +19,12 @@ import sh.purpl.internal.*
 import java.net.URLEncoder
 import java.util.Locale
 
-/// Google Play 구매와 Purpl 권한에 접근하는 앱 단위 진입점
+// Google Play 구매와 Purpl 권한에 접근하는 앱 단위 진입점
+/**
+ * The app-wide entry point for Google Play purchases and Purpl entitlements.
+ *
+ * Call [configure] once when the app starts and share the returned instance across the app.
+ */
 public class Purchases private constructor(context: Context, private val configuration: PurchasesConfiguration) {
     private val applicationContext = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -35,13 +40,17 @@ public class Purchases private constructor(context: Context, private val configu
         override fun onStart(owner: LifecycleOwner) { refreshRequests.trySend(Unit) }
     }
 
-    /// 첫 스토어 조회 전에는 null인 현재 구매 기준 고객 정보
+    // 첫 스토어 조회 전에는 null인 현재 구매 기준 고객 정보
+    /** Customer information for current purchases, or `null` until the first store query completes. */
     public val customerInfoFlow: StateFlow<CustomerInfo?> = coordinator.customerInfo
-    /// 자동 갱신·확인 처리·폴백 과정의 진단 오류
+    // 자동 갱신·확인 처리·폴백 과정의 진단 오류
+    /** Diagnostic errors from automatic refreshes, acknowledgements, and fallbacks. */
     public val errors: SharedFlow<PurchasesException> = coordinator.errors
-    /// 열린 페이월에도 반영할 수 있는 원격 구성 갱신
+    // 열린 페이월에도 반영할 수 있는 원격 구성 갱신
+    /** Remote paywall configuration updates that can also be applied to paywalls that are already open. */
     public val paywallConfigurationUpdates: SharedFlow<PaywallConfigurationUpdate> = mutablePaywallConfigurationUpdates.asSharedFlow()
-    /// 판매 종료 상품을 포함한 앱의 로컬 권한 구성
+    // 판매 종료 상품을 포함한 앱의 로컬 권한 구성
+    /** The app's local entitlement configuration, including discontinued products. */
     public val purchaseConfiguration: PurchaseConfiguration? get() = configuration.purchaseConfiguration
 
     init {
@@ -71,29 +80,51 @@ public class Purchases private constructor(context: Context, private val configu
         refreshRequests.trySend(Unit)
     }
 
-    /// 지정 카탈로그의 현재 구매 가능한 옵션과 Google Play 가격 조회
+    // 지정 카탈로그의 현재 구매 가능한 옵션과 Google Play 가격 조회
+    /**
+     * Returns the options in a catalog that are currently available from Google Play, with their prices.
+     *
+     * @param catalog The catalog whose purchase options to load.
+     */
     public suspend fun products(catalog: PurchaseCatalog): List<StorePurchaseOption> = store.products(catalog.options, configuration.purchaseConfiguration)
 
-    /// 로컬 권한 구성의 상품 목록 조회
+    // 로컬 권한 구성의 상품 목록 조회
+    /**
+     * Returns the products defined in the local entitlement configuration.
+     *
+     * @throws PurchasesException If no local entitlement configuration is available.
+     */
     public suspend fun products(): List<StorePurchaseOption> {
         val products = configuration.purchaseConfiguration?.products
             ?: throw PurchasesException(PurchasesErrorCode.Configuration, "상품 카탈로그 또는 로컬 구성이 필요합니다.")
         return store.products(products.map { PurchaseOption(it.productIdentifier, it.productIdentifier) }, configuration.purchaseConfiguration)
     }
 
-    /// 현재 스토어 구매와 서버를 다시 확인한 고객 정보
+    // 현재 스토어 구매와 서버를 다시 확인한 고객 정보
+    /** Returns customer information after checking current store purchases and the server again. */
     public suspend fun customerInfo(): CustomerInfo = refreshCustomerInfo()
 
-    /// 현재 Google 계정의 구매 복원과 미완료 처리 복구
+    // 현재 Google 계정의 구매 복원과 미완료 처리 복구
+    /** Restores purchases for the current Google account and recovers unfinished processing. */
     public suspend fun restorePurchases(): CustomerInfo = refreshCustomerInfo()
 
-    /// 현재 스토어 구매를 권한 제공자와 동기화
+    // 현재 스토어 구매를 권한 제공자와 동기화
+    /** Synchronizes current store purchases with the entitlement provider. */
     public suspend fun synchronizePurchases(): CustomerInfo = refreshCustomerInfo()
 
-    /// 구독 변경 시 기존 토큰 선택에 사용하는 현재 완료 구매
+    // 구독 변경 시 기존 토큰 선택에 사용하는 현재 완료 구매
+    /** Returns completed current purchases, used to choose the existing purchase token when changing subscriptions. */
     public suspend fun activePurchases(): List<ActivePurchase> = coordinator.activePurchases()
 
-    /// 결제창 표시 후 권한 검증과 Google 확인 처리
+    // 결제창 표시 후 권한 검증과 Google 확인 처리
+    /**
+     * Presents the Google Play purchase flow, then verifies the entitlement and acknowledges the purchase.
+     *
+     * @param activity The activity that presents the purchase flow.
+     * @param option The purchase option to buy.
+     * @param replacement The existing subscription to replace, or `null` for a new purchase.
+     * @throws PurchasesException If the purchase fails or its entitlement cannot be verified.
+     */
     public suspend fun purchase(activity: Activity, option: StorePurchaseOption, replacement: SubscriptionReplacement? = null): PurchaseResult {
         val acceptedProducts = if (replacement?.mode == SubscriptionReplacementMode.Deferred) {
             coordinator.activePurchases().firstOrNull { it.purchaseToken == replacement.purchaseToken }?.productIdentifiers.orEmpty() + option.option.productIdentifier
@@ -108,7 +139,17 @@ public class Purchases private constructor(context: Context, private val configu
         return result
     }
 
-    /// 캐시 또는 로컬 구성을 먼저 제공하고 원격 구성 갱신
+    // 캐시 또는 로컬 구성을 먼저 제공하고 원격 구성 갱신
+    /**
+     * Returns the paywall configuration for an identifier.
+     *
+     * A cached configuration is returned immediately while the remote configuration refreshes in the background.
+     * Without a cache, the remote configuration is loaded, and [fallback] is returned when the request fails.
+     *
+     * @param identifier The paywall identifier created in Purpl.
+     * @param localeIdentifier The BCP 47 language tag to request.
+     * @param fallback The local configuration to use when no remote configuration is available.
+     */
     public suspend fun paywallConfiguration(
         identifier: String,
         localeIdentifier: String = Locale.getDefault().toLanguageTag(),
@@ -128,14 +169,20 @@ public class Purchases private constructor(context: Context, private val configu
         }
     }
 
-    /// Google Play 구독 관리 화면 주소
+    // Google Play 구독 관리 화면 주소
+    /**
+     * Returns the URL of the Google Play subscription management screen.
+     *
+     * @param productIdentifier The subscription to open, or `null` to list all subscriptions.
+     */
     public fun subscriptionManagementUrl(productIdentifier: String? = null): String {
         val packageName = URLEncoder.encode(applicationContext.packageName, "UTF-8")
         val product = productIdentifier?.let { "&sku=${URLEncoder.encode(it, "UTF-8")}" }.orEmpty()
         return "https://play.google.com/store/account/subscriptions?package=$packageName$product"
     }
 
-    /// 명시적인 SDK 연결 종료
+    // 명시적인 SDK 연결 종료
+    /** Explicitly closes the SDK connection and releases the shared instance. */
     public fun close() {
         scope.launch {
             ProcessLifecycleOwner.get().lifecycle.removeObserver(lifecycleObserver)
@@ -156,12 +203,22 @@ public class Purchases private constructor(context: Context, private val configu
         }
     }
 
-    /// 앱 프로세스에서 공유하는 SDK 생성 경계
+    // 앱 프로세스에서 공유하는 SDK 생성 경계
+    /** Creates the SDK instance shared across the app process. */
     public companion object {
         private val instanceLock = Any()
         private var sharedInstance: Purchases? = null
 
-        /// 앱 컨텍스트로 한 번 구성하고 자동 구매 복구 시작
+        // 앱 컨텍스트로 한 번 구성하고 자동 구매 복구 시작
+        /**
+         * Configures Purpl once with the app context and starts automatic purchase recovery.
+         *
+         * Calling this again with the same configuration returns the existing instance.
+         *
+         * @param context Any context. The SDK keeps only the application context.
+         * @param configuration The server connection and device verification configuration.
+         * @throws IllegalArgumentException If Purpl is already configured with a different configuration.
+         */
         @JvmStatic
         public fun configure(context: Context, configuration: PurchasesConfiguration): Purchases = synchronized(instanceLock) {
             sharedInstance?.also { require(it.configuration == configuration) { "Purpl이 이미 다른 구성으로 초기화되어 있습니다." } }

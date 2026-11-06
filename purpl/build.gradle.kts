@@ -1,4 +1,4 @@
-plugins { id("com.android.library"); id("maven-publish") }
+plugins { id("com.android.library"); id("maven-publish"); id("org.jetbrains.dokka") }
 android {
     namespace = "sh.purpl"
     compileSdk = 37
@@ -14,6 +14,11 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("org.json:json:20250517")
+}
+// API Reference의 모듈과 패키지 설명
+dokka {
+    moduleName.set("purpl")
+    dokkaSourceSets.configureEach { includes.from("Module.md") }
 }
 afterEvaluate {
     publishing { publications { create<MavenPublication>("release") { from(components["release"]); artifactId = "purpl" } } }

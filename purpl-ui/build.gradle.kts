@@ -2,6 +2,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.plugin.compose")
     id("maven-publish")
+    id("org.jetbrains.dokka")
 }
 
 android {
@@ -21,6 +22,12 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
     testImplementation("junit:junit:4.13.2")
+}
+
+// API Reference의 모듈과 패키지 설명
+dokka {
+    moduleName.set("purpl-ui")
+    dokkaSourceSets.configureEach { includes.from("Module.md") }
 }
 
 afterEvaluate {

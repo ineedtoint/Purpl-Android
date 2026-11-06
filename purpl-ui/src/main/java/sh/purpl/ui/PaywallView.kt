@@ -20,24 +20,59 @@ import kotlinx.coroutines.launch
 import sh.purpl.*
 import java.time.Period
 
-/// 앱에서 조정하는 페이월 색상과 카드 강조
+// 앱에서 조정하는 페이월 색상과 카드 강조
+/** Colors that the app can customize for the paywall and its product cards. */
 public data class PaywallStyle(
+    // 선택 표시와 구매 버튼 색상, 지정하지 않으면 테마의 primary
+    /** The accent color for selection and the purchase button. Uses the Material theme primary color when unspecified. */
     val tintColor: Color = Color.Unspecified,
+    // 페이월 배경 색상, 지정하지 않으면 테마의 background
+    /** The paywall background color. Uses the Material theme background color when unspecified. */
     val containerColor: Color = Color.Unspecified,
+    // 상품 카드 배경 색상, 지정하지 않으면 테마의 surfaceContainerLow
+    /** The product card background color. Uses the Material theme surfaceContainerLow color when unspecified. */
     val productCardColor: Color = Color.Unspecified,
 )
 
-/// 사용자 정의 구매 카드에 전달하는 실제 스토어 옵션
+// 사용자 정의 구매 카드에 전달하는 실제 스토어 옵션
+/** The store option and state passed to a custom product card. */
 public data class PaywallProductContext(
+    // 카드에 표시할 스토어 구매 옵션
+    /** The store purchase option to display. */
     val option: StorePurchaseOption,
+    // 현재 선택 여부
+    /** Whether the option is selected. */
     val selected: Boolean,
+    // 선택 가능 여부
+    /** Whether the card accepts selection. */
     val enabled: Boolean,
+    // 표시할 상품 제목
+    /** The product title to display. */
     val title: String,
+    // 표시할 상품 설명
+    /** The product description to display, if any. */
     val description: String? = null,
+    // 고객이 이미 이용 중인 옵션인지 여부
+    /** Whether the customer already owns this option. */
     val isOwned: Boolean = false,
 )
 
-/// 로컬 구성 또는 원격 페이월과 선택 폴백을 사용하는 구매 화면
+// 로컬 구성 또는 원격 페이월과 선택 폴백을 사용하는 구매 화면
+/**
+ * A paywall that uses a local configuration, or a remote paywall with an optional local fallback.
+ *
+ * The paywall owns product presentation, purchases, and restoration. The app owns navigation, tabs, toolbars, and close buttons.
+ *
+ * @param purchases The configured Purpl instance.
+ * @param configuration The local paywall configuration, or the fallback for a remote paywall.
+ * @param paywallIdentifier The remote paywall identifier created in Purpl.
+ * @param modifier The modifier applied to the paywall.
+ * @param isIncluded Filters the catalog options to display. It does not affect entitlements or restoration.
+ * @param style The paywall colors.
+ * @param replacement Returns the existing subscription to replace for the selected option, or `null` for a new purchase.
+ * @param onPurchaseCompleted Called after a purchase completes.
+ * @param content Custom marketing content shown above the products.
+ */
 @Composable
 public fun PaywallView(
     purchases: Purchases,
@@ -54,7 +89,19 @@ public fun PaywallView(
     PaywallView(model, modifier, isIncluded, style, replacement, onPurchaseCompleted, content = content)
 }
 
-/// 상품 선택·구매·복원과 사용자 정의 콘텐츠를 표시하는 페이월
+// 상품 선택·구매·복원과 사용자 정의 콘텐츠를 표시하는 페이월
+/**
+ * A paywall that presents product selection, purchases, restoration, and custom content using an existing [PaywallModel].
+ *
+ * @param model The model that loads products and handles purchases.
+ * @param modifier The modifier applied to the paywall.
+ * @param isIncluded Filters the catalog options to display. It does not affect entitlements or restoration.
+ * @param style The paywall colors.
+ * @param replacement Returns the existing subscription to replace for the selected option, or `null` for a new purchase.
+ * @param onPurchaseCompleted Called after a purchase completes.
+ * @param productCard A custom product card, or `null` to use [DefaultPaywallProductCard].
+ * @param content Custom marketing content shown above the products.
+ */
 @Composable
 public fun PaywallView(
     model: PaywallModel,
@@ -142,7 +189,8 @@ public fun PaywallView(
     }
 }
 
-/// 실제 가격 단계와 선택 상태를 표시하는 기본 상품 카드
+// 실제 가격 단계와 선택 상태를 표시하는 기본 상품 카드
+/** The default product card that displays actual pricing phases and selection state. */
 @Composable
 public fun DefaultPaywallProductCard(context: PaywallProductContext, tintColor: Color, backgroundColor: Color, onClick: () -> Unit) {
     Card(onClick = onClick, enabled = context.enabled, modifier = Modifier.fillMaxWidth(),
