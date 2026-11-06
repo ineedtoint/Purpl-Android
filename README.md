@@ -1,6 +1,6 @@
 # Purpl Android
 
-English | [한국어](README.ko.md) | [Docs](https://purpl.sh/en/docs)
+English | [한국어](README.ko.md) | [Docs](https://purpl.sh/en/docs) | [Android API Reference](https://android.purpl.sh/)
 
 Purpl is a Kotlin SDK for Google Play purchases, entitlement checks, restoration, and Jetpack Compose paywalls.
 
@@ -218,7 +218,7 @@ The UI includes English, Korean, Japanese, German, Simplified Chinese, and Tradi
 
 ## API reference
 
-Explore the SDK entry point in [Purchases.kt](purpl/src/main/java/sh/purpl/Purchases.kt), public configuration types in [PurchaseConfiguration.kt](purpl/src/main/java/sh/purpl/PurchaseConfiguration.kt), and Compose entry points in [PaywallView.kt](purpl-ui/src/main/java/sh/purpl/ui/PaywallView.kt).
+Browse the [Purpl Android API Reference](https://android.purpl.sh/) online. It is generated with Dokka from the KDoc in `purpl` and `purpl-ui`. Run `./gradlew :dokkaGenerate` to build the same reference locally in `build/dokka/html`.
 
 For Apple platforms, see [Purpl Swift](https://github.com/ineedtoint/Purpl-Swift).
 

@@ -1,6 +1,6 @@
 # Purpl Android
 
-[English](README.md) | 한국어 | [문서](https://purpl.sh/ko/docs)
+[English](README.md) | 한국어 | [문서](https://purpl.sh/ko/docs) | [Android API Reference](https://android.purpl.sh/)
 
 Purpl은 Google Play 구매, 권한 확인, 복원과 Jetpack Compose 페이월을 제공하는 Kotlin SDK입니다.
 
@@ -218,7 +218,7 @@ UI는 영어, 한국어, 일본어, 독일어, 중국어 간체와 번체를 지
 
 ## API 레퍼런스
 
-SDK 진입점은 [Purchases.kt](purpl/src/main/java/sh/purpl/Purchases.kt), 공개 구성 타입은 [PurchaseConfiguration.kt](purpl/src/main/java/sh/purpl/PurchaseConfiguration.kt), Compose 진입점은 [PaywallView.kt](purpl-ui/src/main/java/sh/purpl/ui/PaywallView.kt)에서 확인할 수 있습니다.
+[Purpl Android API Reference](https://android.purpl.sh/)에서 온라인으로 확인할 수 있습니다. `purpl`과 `purpl-ui`의 KDoc으로 Dokka가 생성하며, `./gradlew :dokkaGenerate`를 실행하면 같은 문서를 `build/dokka/html`에 로컬로 만들 수 있습니다.
 
 Apple 플랫폼은 [Purpl Swift](https://github.com/ineedtoint/Purpl-Swift)를 참고하세요.
 
