@@ -17,13 +17,28 @@ internal class PurplServerClient(
     private val configuration: PurchasesConfiguration,
     private val packageName: String,
 ) : PurchasesServer {
-    /// 구매 토큰으로 Google 서버 검증 결과 요청
+    /// 구매 토큰으로 Google 서버 검증 결과 요청 또는 미완료 복구 재시도
     override suspend fun synchronize(request: SynchronizationRequest): CustomerInfo {
+        request.republicationRequestIdentifier?.let {
+            return republishEntitlements(request, it).customerInfo
+        }
+        return decodeCustomerInfo(request("/v1/customers/google-play/synchronize", synchronizationBody(request)))
+    }
+
+    /// 별도 복구 API로 현재 권한 웹훅 재전송 접수 또는 상태 확인
+    override suspend fun republishEntitlements(request: SynchronizationRequest, requestIdentifier: String): EntitlementSynchronizationResult {
+        val body = synchronizationBody(request).put("provider", "google").put("requestIdentifier", requestIdentifier)
+        val response = request("/v1/customers/entitlements/republish", body)
+        return decodeEntitlementSynchronizationResult(response)
+    }
+
+    /// 호출 시점의 앱 계정과 검증할 구매 토큰으로 요청 구성
+    private fun synchronizationBody(request: SynchronizationRequest): JSONObject {
         val body = JSONObject().put("packageName", packageName).put("purchaseToken", request.purchaseToken)
             .put("productKind", if (request.kind == ProductKind.Subscription) "subscription" else "one_time_product")
             .put("productIdentifier", request.productIdentifier)
-        configuration.applicationAccountIdentifier?.let { body.put("applicationAccountIdentifier", it) }
-        return decodeCustomerInfo(request("/v1/customers/google-play/synchronize", body))
+        request.applicationAccountIdentifier?.let { body.put("applicationAccountIdentifier", it) }
+        return body
     }
 
     /// Google Play용 공개 페이월 구성 요청
@@ -77,6 +92,20 @@ internal fun serverException(status: Int, serverCode: String): PurchasesExceptio
     }
     val purchaseRejected = status in 400..499 && code in setOf(PurchasesErrorCode.PurchaseInvalid, PurchasesErrorCode.PurchasePending, PurchasesErrorCode.PurchaseNotCompleted)
     return PurchasesException(code, "Purpl 구매 확인 실패: $serverCode ($status)", serverErrorCode = serverCode, retryable = retryable, purchaseRejected = purchaseRejected)
+}
+
+/// 고객 권한과 웹훅 전달 상태를 구분하는 응답 해석
+internal fun decodeEntitlementSynchronizationResult(response: JSONObject): EntitlementSynchronizationResult = decodeResponse {
+        val republication = response.getJSONObject("republication")
+        val status = when (republication.getString("status")) {
+            "queued" -> EntitlementRepublicationStatus.Queued
+            "delivered" -> EntitlementRepublicationStatus.Delivered
+            "failed" -> EntitlementRepublicationStatus.Failed
+            "not_required" -> EntitlementRepublicationStatus.NotRequired
+            else -> throw PurchasesException(PurchasesErrorCode.InvalidServerResponse, "권한 재전송 상태가 올바르지 않습니다.")
+        }
+        EntitlementSynchronizationResult(decodeCustomerInfo(response), listOf(EntitlementRepublication(
+            republication.getString("requestIdentifier"), status, republication.getInt("deliveryCount"))))
 }
 
 /// 서버 고객 응답의 엄격한 권한 해석

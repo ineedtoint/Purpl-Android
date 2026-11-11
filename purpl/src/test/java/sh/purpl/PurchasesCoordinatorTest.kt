@@ -390,6 +390,38 @@ class PurchasesCoordinatorTest {
         assertEquals(PurchaseResult.Completed, resolvePurchaseUpdate("pro", listOf(previous.copy(purchaseToken = "new-yearly-token")), previous.purchaseToken))
     }
 
+    /// 일반 조회는 재전송하지 않고 로그인·명시적 복구는 현재 계정으로 재전송
+    @Test fun explicitRecoveryRepublishesWithoutChangingOrdinaryQueries() = runTest {
+        val store = FakeStore(listOf(purchase("pro")))
+        val server = FakeServer()
+        val coordinator = coordinator(store, server, MemoryPersistence())
+        coordinator.refresh()
+        assertTrue(server.republications.isEmpty())
+        coordinator.logIn("flow-first-user")
+        assertEquals("flow-first-user", server.republications.last().applicationAccountIdentifier)
+        coordinator.refresh()
+        assertEquals(1, server.republications.size)
+        val requestIdentifier = "11111111-1111-4111-8111-111111111111"
+        val result = coordinator.synchronizeEntitlements(requestIdentifier)
+        assertEquals(requestIdentifier, result.republications.single().requestIdentifier)
+        assertEquals(EntitlementRepublicationStatus.Queued, result.republications.single().status)
+        coordinator.logOut()
+        coordinator.refresh()
+        assertNull(server.requests.last().applicationAccountIdentifier)
+    }
+
+    /// 복구 통신 실패는 성공으로 숨기지 않고 같은 요청을 재시도 목록에 보존
+    @Test fun failedRepublicationRemainsPending() = runTest {
+        val store = FakeStore(listOf(purchase("pro")))
+        val server = FakeServer().apply { republicationFailure = PurchasesException(PurchasesErrorCode.Network, "테스트 실패", retryable = true) }
+        val persistence = MemoryPersistence()
+        val coordinator = coordinator(store, server, persistence)
+        val requestIdentifier = "11111111-1111-4111-8111-111111111111"
+        try { coordinator.synchronizeEntitlements(requestIdentifier); fail("복구 실패를 반환해야 함") }
+        catch (_: PurchasesException) { }
+        assertEquals(requestIdentifier, persistence.pendingSynchronizations.single().republicationRequestIdentifier)
+    }
+
     /// 테스트용 코디네이터 구성
     private fun coordinator(store: FakeStore, server: FakeServer, persistence: MemoryPersistence, mode: EntitlementMode = EntitlementMode.ServerWithGooglePlayFallback): PurchasesCoordinator = PurchasesCoordinator("test.application", PurchasesConfiguration(mapping, mode, encodedPublicKey), store, server, persistence)
 
@@ -431,6 +463,15 @@ private class FakeStore(var purchases: List<StorePurchase>) : PurchasesStore {
 
 /// 서버 응답과 요청 토큰을 제어하는 대역
 private class FakeServer : PurchasesServer {
+    val republications = mutableListOf<SynchronizationRequest>()
+    var republicationFailure: Throwable? = null
+    /// 별도 복구 API 호출과 멱등 식별자 기록
+    override suspend fun republishEntitlements(request: SynchronizationRequest, requestIdentifier: String): EntitlementSynchronizationResult {
+        republications += request
+        republicationFailure?.let { throw it }
+        return EntitlementSynchronizationResult(response ?: information(request.productIdentifier, true),
+            listOf(EntitlementRepublication(requestIdentifier, EntitlementRepublicationStatus.Queued, 1)))
+    }
     val requests = mutableListOf<SynchronizationRequest>()
     var response: CustomerInfo? = null
     var failure: Throwable? = null

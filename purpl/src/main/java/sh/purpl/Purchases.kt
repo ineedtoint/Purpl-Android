@@ -104,9 +104,23 @@ public class Purchases private constructor(context: Context, private val configu
     /** Returns customer information after checking current store purchases and the server again. */
     public suspend fun customerInfo(): CustomerInfo = refreshCustomerInfo()
 
+    /// 로그인한 앱 계정 연결과 현재 권한 웹훅 재전송 접수
+    public suspend fun logIn(applicationAccountIdentifier: String): CustomerInfo = withContext(Dispatchers.IO) {
+        coordinator.logIn(applicationAccountIdentifier)
+    }
+
+    /// 이후 구매와 조회에 사용할 앱 계정 연결 해제
+    public suspend fun logOut(): Unit = coordinator.logOut()
+
+    /// 현재 권한 웹훅 재전송, 같은 식별자로 재시도하면 기존 전달 상태 확인
+    /// 완료 결과가 Queued이면 연동 서버의 수신 완료가 아니라 전송 접수를 뜻한다.
+    public suspend fun synchronizeEntitlements(requestIdentifier: String = java.util.UUID.randomUUID().toString()): EntitlementSynchronizationResult = withContext(Dispatchers.IO) {
+        coordinator.synchronizeEntitlements(requestIdentifier)
+    }
+
     // 현재 Google 계정의 구매 복원과 미완료 처리 복구
     /** Restores purchases for the current Google account and recovers unfinished processing. */
-    public suspend fun restorePurchases(): CustomerInfo = refreshCustomerInfo()
+    public suspend fun restorePurchases(): CustomerInfo = synchronizeEntitlements().customerInfo
 
     // 현재 스토어 구매를 권한 제공자와 동기화
     /** Synchronizes current store purchases with the entitlement provider. */
@@ -129,7 +143,7 @@ public class Purchases private constructor(context: Context, private val configu
         val acceptedProducts = if (replacement?.mode == SubscriptionReplacementMode.Deferred) {
             coordinator.activePurchases().firstOrNull { it.purchaseToken == replacement.purchaseToken }?.productIdentifiers.orEmpty() + option.option.productIdentifier
         } else setOf(option.option.productIdentifier)
-        val result = store.purchase(activity, option, replacement, configuration.applicationAccountIdentifier)
+        val result = store.purchase(activity, option, replacement, coordinator.applicationAccountIdentifier)
         if (result == PurchaseResult.Completed) {
             try {
                 val information = refreshCustomerInfo()

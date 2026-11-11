@@ -7,4 +7,6 @@ internal data class SynchronizationRequest(
     val purchaseToken: String,
     val productIdentifier: String,
     val kind: ProductKind,
+    val applicationAccountIdentifier: String? = null,
+    val republicationRequestIdentifier: String? = null,
 )

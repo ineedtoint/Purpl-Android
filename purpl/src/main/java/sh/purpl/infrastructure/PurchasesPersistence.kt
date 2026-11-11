@@ -33,11 +33,11 @@ internal class NoBackupPurchasesPersistence(context: Context) : PurchasesPersist
         get() = synchronized(lock) {
             val items = state.optJSONArray("synchronizations") ?: JSONArray()
             (0 until items.length()).map { index -> items.getJSONObject(index).let { item ->
-                SynchronizationRequest(item.getString("token"), item.getString("product"), ProductKind.valueOf(item.getString("kind")))
+                SynchronizationRequest(item.getString("token"), item.getString("product"), ProductKind.valueOf(item.getString("kind")), item.optString("account").takeIf { it.isNotEmpty() }, item.optString("republication").takeIf { it.isNotEmpty() })
             } }
         }
         /// 다음 프로세스에서 복구할 서버 동기화 목록 저장
-        set(value) = synchronized(lock) { state.put("synchronizations", JSONArray(value.map { request -> JSONObject().put("token", request.purchaseToken).put("product", request.productIdentifier).put("kind", request.kind.name) })); persist() }
+        set(value) = synchronized(lock) { state.put("synchronizations", JSONArray(value.map { request -> JSONObject().put("token", request.purchaseToken).put("product", request.productIdentifier).put("kind", request.kind.name).put("account", request.applicationAccountIdentifier).put("republication", request.republicationRequestIdentifier) })); persist() }
     override var pendingAcknowledgements: Set<String>
         /// 저장된 확인 처리 목록 읽기
         get() = readTokens("acknowledgements")

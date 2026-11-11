@@ -235,3 +235,18 @@ Set `sdk.dir` in an untracked `local.properties` file or configure `ANDROID_HOME
 ```
 
 For Play Console setup and purchase testing, see Google's [billing setup](https://developer.android.com/google/play/billing/getting-ready) and [testing guide](https://developer.android.com/google/play/billing/test).
+
+## Sign-in, restoration, and entitlement recovery
+
+After authenticating your app user, call `logIn` to link the account. Sign-in, restoration, and explicit `synchronizeEntitlements` request current entitlement webhooks even when unchanged. Ordinary `customerInfo()` does not force republication; actual entitlement changes still produce normal webhooks.
+
+```kotlin
+val customerInfo = purchases.logIn(accountIdentifier)
+val restoredCustomerInfo = purchases.restorePurchases()
+val recovery = purchases.synchronizeEntitlements()
+val deliveryStates = recovery.republications
+purchases.logOut()
+```
+
+`queued` means accepted for delivery, not received by your server. Reuse a `requestIdentifier` to check status without generating duplicates. Purpl retries webhook delivery failures. Explicit recovery does not hide server errors behind local entitlement fallback. Local-only modes do not send webhooks.
+Android republishes only customers proven by currently available store purchases. Without purchase evidence, `republications` is empty.

@@ -233,3 +233,18 @@ Git에서 제외되는 `local.properties` 파일에 `sdk.dir`을 설정하거나
 ```
 
 Play Console 설정과 구매 테스트는 Google의 [결제 설정](https://developer.android.com/google/play/billing/getting-ready)과 [테스트 안내](https://developer.android.com/google/play/billing/test)를 참고하세요.
+
+## 로그인·구매 복원과 권한 복구
+
+앱 로그인을 마친 뒤 `logIn`으로 계정을 연결합니다. 로그인·구매 복원·명시적 `synchronizeEntitlements`는 현재 권한이 같아도 Purpl에 웹훅 재전송을 요청합니다. 일반 `customerInfo()` 조회는 재전송을 요청하지 않으며, 실제 권한 변경 이벤트는 기존처럼 전달됩니다.
+
+```kotlin
+val customerInfo = purchases.logIn(accountIdentifier)
+val restoredCustomerInfo = purchases.restorePurchases()
+val recovery = purchases.synchronizeEntitlements()
+val deliveryStates = recovery.republications
+purchases.logOut()
+```
+
+`queued`는 전송 접수이고 수신 완료가 아닙니다. 같은 `requestIdentifier`로 재호출하면 중복 생성 없이 전달 상태를 확인할 수 있습니다. 웹훅 실패는 Purpl의 기존 전송 worker에서 재시도합니다. 명시적 복구의 서버 오류는 기기 폴백 성공으로 숨기지 않습니다. 서버를 사용하지 않는 모드에서는 외부 웹훅을 보내지 않습니다.
+Android는 현재 스토어에서 구매 증빙을 확인한 고객만 재전송합니다. 증빙이 없으면 `republications`는 빈 목록입니다.

@@ -8,6 +8,7 @@ import kotlinx.coroutines.sync.withLock
 import sh.purpl.*
 import sh.purpl.infrastructure.*
 import java.time.Instant
+import java.util.UUID
 
 /// 스토어 재조회·권한 확인·서버 동기화·구매 확인 처리의 단일 실행 경계
 internal class PurchasesCoordinator(
@@ -20,11 +21,21 @@ internal class PurchasesCoordinator(
     val errors: MutableSharedFlow<PurchasesException> = MutableSharedFlow(extraBufferCapacity = 32),
 ) {
     private val synchronizationMutex = Mutex()
+    @Volatile var applicationAccountIdentifier: String? = configuration.applicationAccountIdentifier
+        private set
     private val lastTokenInformation = mutableMapOf<String, CustomerInfo>()
     private val verifier = configuration.googlePlayPublicKey?.takeIf { it.isNotBlank() }?.let(::PurchaseSignatureVerifier)
 
     /// 현재 스토어에서 확인한 구매만 이용한 고객 권한 갱신
-    suspend fun refresh(): CustomerInfo = synchronizationMutex.withLock {
+    suspend fun refresh(): CustomerInfo = refreshCustomer().customerInfo
+
+    /// 구매 갱신과 해당 요청의 재전송 결과를 같은 잠금 안에서 반환
+    private suspend fun refreshCustomer(republicationRequestIdentifier: String? = null, loginAccountIdentifier: String? = null): EntitlementSynchronizationResult = synchronizationMutex.withLock {
+        var republications = emptyList<EntitlementRepublication>()
+        if (loginAccountIdentifier != null && applicationAccountIdentifier != loginAccountIdentifier) {
+            applicationAccountIdentifier = loginAccountIdentifier
+            lastTokenInformation.clear()
+        }
         // 조회 실패를 빈 구매로 바꾸지 않아 기존 화면을 무료 상태로 덮어쓰지 않는다.
         val purchases = store.queryPurchases().distinctBy { it.purchaseToken }
         val completed = purchases.filter { it.state == StorePurchaseState.Purchased }
@@ -84,7 +95,43 @@ internal class PurchasesCoordinator(
             customerInfo.value = mergeCustomerInformation(resolved, defaultSource())
             throw failure
         }
-        mergeCustomerInformation(resolved, defaultSource()).also { customerInfo.value = it }
+        if (republicationRequestIdentifier != null && configuration.entitlementMode != EntitlementMode.GooglePlay) {
+            val results = mutableListOf<EntitlementRepublication>()
+            val requestedCustomers = mutableSetOf<String>()
+            for (purchase in completed) {
+                val information = lastTokenInformation[purchase.purchaseToken]
+                val customerKey = information?.customerIdentifiers?.sorted()?.joinToString(":")
+                    ?.takeIf { it.isNotEmpty() } ?: purchase.purchaseToken
+                if (!requestedCustomers.add(customerKey)) continue
+                val request = SynchronizationRequest(purchase.purchaseToken, purchase.productIdentifiers.first(), purchase.kind,
+                    applicationAccountIdentifier, republicationRequestIdentifier)
+                // 통신 실패 시 같은 요청 식별자와 계정으로 다음 갱신에서 복구한다.
+                persistence.pendingSynchronizations = persistence.pendingSynchronizations.filterNot { it.purchaseToken == request.purchaseToken } + request
+                val result = server.republishEntitlements(request, republicationRequestIdentifier)
+                results += result.republications
+                removeSynchronization(request.purchaseToken)
+            }
+            republications = results
+        }
+        EntitlementSynchronizationResult(mergeCustomerInformation(resolved, defaultSource()).also { customerInfo.value = it }, republications)
+    }
+
+    /// 로그인 계정 연결과 현재 권한 재전송
+    suspend fun logIn(accountIdentifier: String): CustomerInfo {
+        require(accountIdentifier.isNotBlank() && accountIdentifier.length <= 512)
+        return refreshCustomer(UUID.randomUUID().toString(), accountIdentifier).customerInfo
+    }
+
+    /// 이후 구매와 조회에서 사용할 앱 계정 연결 해제
+    suspend fun logOut() = synchronizationMutex.withLock {
+        applicationAccountIdentifier = null
+        lastTokenInformation.clear()
+    }
+
+    /// 현재 권한 재전송과 전달 결과 조회
+    suspend fun synchronizeEntitlements(requestIdentifier: String): EntitlementSynchronizationResult {
+        UUID.fromString(requestIdentifier)
+        return refreshCustomer(requestIdentifier)
     }
 
     /// 구독 변경에 필요한 현재 구매 토큰 조회
@@ -100,7 +147,10 @@ internal class PurchasesCoordinator(
     private suspend fun resolve(purchase: StorePurchase): CustomerInfo {
         if (configuration.entitlementMode == EntitlementMode.GooglePlay) return localInformation(purchase)
         val request = SynchronizationRequest(purchase.purchaseToken, purchase.productIdentifiers.firstOrNull()
-            ?: throw PurchasesException(PurchasesErrorCode.PurchaseInvalid, "구매 상품이 없습니다."), purchase.kind)
+            ?: throw PurchasesException(PurchasesErrorCode.PurchaseInvalid, "구매 상품이 없습니다."), purchase.kind,
+            applicationAccountIdentifier, persistence.pendingSynchronizations.firstOrNull {
+                it.purchaseToken == purchase.purchaseToken && it.applicationAccountIdentifier == applicationAccountIdentifier
+            }?.republicationRequestIdentifier)
         persistence.pendingSynchronizations = (persistence.pendingSynchronizations.filterNot { it.purchaseToken == request.purchaseToken } + request)
         try {
             return server.synchronize(request).also { information ->

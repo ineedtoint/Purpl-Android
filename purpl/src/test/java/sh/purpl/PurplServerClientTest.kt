@@ -8,6 +8,18 @@ import java.time.Instant
 
 /// 서버 응답 해석과 원격 구성 캐시의 계약 테스트
 class PurplServerClientTest {
+    /// 웹훅 전송 접수를 실제 수신 완료와 구분하고 누락 응답 거절
+    @Test fun decodesRepublicationStatusSeparatelyFromCustomerInfo() {
+        val response = JSONObject("""{"customerIdentifier":"customer","entitlements":[],"republication":{
+            "requestIdentifier":"11111111-1111-4111-8111-111111111111","status":"queued","deliveryCount":2
+        }}""")
+        val result = decodeEntitlementSynchronizationResult(response)
+        assertEquals(EntitlementRepublicationStatus.Queued, result.republications.single().status)
+        assertEquals(2, result.republications.single().deliveryCount)
+        response.remove("republication")
+        assertThrows(PurchasesException::class.java) { decodeEntitlementSynchronizationResult(response) }
+    }
+
     /// Google 오류와 Purpl 자체 장애를 모두 재시도 대상으로 분류
     @Test fun serverFailuresRemainRetryableRegardlessOfErrorCode() {
         assertTrue(serverException(503, "GOOGLE_PLAY_API_REQUEST_FAILED").retryable)
