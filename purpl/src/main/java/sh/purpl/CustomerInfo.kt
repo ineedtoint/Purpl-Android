@@ -6,7 +6,8 @@ import java.time.Instant
 public enum class EntitlementOrigin(public val identifier: String) {
     AppStore("appStore"),
     GooglePlay("googlePlay"),
-    ManualGrant("manualGrant"),
+    Purpl("purpl"),
+    Unknown("unknown"),
 }
 
 // 고객 정보의 권한 확인 출처
@@ -122,7 +123,7 @@ public data class CustomerInfo(
         get() {
             val now = Instant.now()
             return entitlements.asSequence().filter { entitlement ->
-                entitlement.active && (entitlement.origin != EntitlementOrigin.ManualGrant ||
+                entitlement.active && (entitlement.origin != EntitlementOrigin.Purpl ||
                     entitlement.expiresAt == null || entitlement.expiresAt.isAfter(now))
             }.map { it.identifier }.toSet()
         }

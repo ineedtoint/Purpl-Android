@@ -53,6 +53,15 @@ class PurplServerClientTest {
         val previousContract = decodeCustomerInfo(response).entitlements.single()
         assertNull(previousContract.basePlanIdentifier)
         assertNull(previousContract.offerIdentifier)
+        assertEquals(EntitlementOrigin.GooglePlay, previousContract.origin)
+        val entry = response.getJSONArray("entitlements").getJSONObject(0)
+        for ((value, expected) in mapOf("appStore" to EntitlementOrigin.AppStore, "purpl" to EntitlementOrigin.Purpl,
+            "manualGrant" to EntitlementOrigin.Purpl, "futureIssuer" to EntitlementOrigin.Unknown)) {
+            entry.put("origin", value)
+            val information = decodeCustomerInfo(response)
+            assertEquals(expected, information.entitlements.single().origin)
+            assertTrue(information.isEntitlementActive("pro"))
+        }
     }
 
     /// 서버가 알 수 없는 권한 상태를 보내면 활성으로 추측하지 않음

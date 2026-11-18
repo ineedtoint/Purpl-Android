@@ -125,8 +125,8 @@ internal fun decodeCustomerInfo(response: JSONObject): CustomerInfo = decodeResp
             origin = when (item.optionalString("origin")) {
                 null, "googlePlay" -> EntitlementOrigin.GooglePlay
                 "appStore" -> EntitlementOrigin.AppStore
-                "manualGrant" -> EntitlementOrigin.ManualGrant
-                else -> throw IllegalArgumentException("알 수 없는 권한 출처")
+                "purpl", "manualGrant" -> EntitlementOrigin.Purpl
+                else -> EntitlementOrigin.Unknown
             },
             productIdentifier = item.optionalString("productIdentifier"),
             environment = when (item.getString("environment")) { "production" -> StoreEnvironment.Production; "sandbox" -> StoreEnvironment.Sandbox; else -> StoreEnvironment.Unknown },
