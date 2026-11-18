@@ -6,7 +6,7 @@ import java.time.Instant
 public enum class EntitlementOrigin(public val identifier: String) {
     AppStore("appStore"),
     GooglePlay("googlePlay"),
-    Purpl("purpl"),
+    Grant("grant"),
     Unknown("unknown"),
 }
 
@@ -123,7 +123,7 @@ public data class CustomerInfo(
         get() {
             val now = Instant.now()
             return entitlements.asSequence().filter { entitlement ->
-                entitlement.active && (entitlement.origin != EntitlementOrigin.Purpl ||
+                entitlement.active && (entitlement.origin != EntitlementOrigin.Grant ||
                     entitlement.expiresAt == null || entitlement.expiresAt.isAfter(now))
             }.map { it.identifier }.toSet()
         }

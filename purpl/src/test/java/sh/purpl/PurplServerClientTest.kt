@@ -53,10 +53,10 @@ class PurplServerClientTest {
         val previousContract = decodeCustomerInfo(response).entitlements.single()
         assertNull(previousContract.basePlanIdentifier)
         assertNull(previousContract.offerIdentifier)
-        assertEquals(EntitlementOrigin.GooglePlay, previousContract.origin)
+        assertEquals(EntitlementOrigin.Unknown, previousContract.origin)
         val entry = response.getJSONArray("entitlements").getJSONObject(0)
-        for ((value, expected) in mapOf("appStore" to EntitlementOrigin.AppStore, "purpl" to EntitlementOrigin.Purpl,
-            "manualGrant" to EntitlementOrigin.Purpl, "futureIssuer" to EntitlementOrigin.Unknown)) {
+        for ((value, expected) in mapOf("appStore" to EntitlementOrigin.AppStore, "googlePlay" to EntitlementOrigin.GooglePlay,
+            "grant" to EntitlementOrigin.Grant, "unknown" to EntitlementOrigin.Unknown, "futureIssuer" to EntitlementOrigin.Unknown)) {
             entry.put("origin", value)
             val information = decodeCustomerInfo(response)
             assertEquals(expected, information.entitlements.single().origin)
