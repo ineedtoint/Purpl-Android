@@ -32,8 +32,8 @@ Add the modules to your app's `build.gradle.kts`.
 
 ```kotlin
 dependencies {
-    implementation("sh.purpl:purpl:0.1.0")
-    implementation("sh.purpl:purpl-ui:0.1.0")
+    implementation("sh.purpl:purpl:0.2.0")
+    implementation("sh.purpl:purpl-ui:0.2.0")
 }
 ```
 
