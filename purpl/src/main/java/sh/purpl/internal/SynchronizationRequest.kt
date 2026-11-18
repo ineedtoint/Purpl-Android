@@ -9,4 +9,6 @@ internal data class SynchronizationRequest(
     val kind: ProductKind,
     val applicationAccountIdentifier: String? = null,
     val republicationRequestIdentifier: String? = null,
+    /// 직접 로그인 요청에만 붙이고 백그라운드 재시도에는 보존하지 않는다.
+    val transferOnLogin: Boolean = false,
 )

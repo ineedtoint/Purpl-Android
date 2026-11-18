@@ -37,6 +37,7 @@ internal class PurplServerClient(
     /// 별도 복구 API로 현재 권한 웹훅 재전송 접수 또는 상태 확인
     override suspend fun republishEntitlements(request: SynchronizationRequest, requestIdentifier: String): EntitlementSynchronizationResult {
         val body = synchronizationBody(request).put("provider", "google").put("requestIdentifier", requestIdentifier)
+        if (request.transferOnLogin) body.put("transferOnLogin", true)
         val response = request("/v1/customers/entitlements/republish", body)
         return decodeEntitlementSynchronizationResult(response)
     }

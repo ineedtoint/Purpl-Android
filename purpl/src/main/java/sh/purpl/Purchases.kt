@@ -109,8 +109,12 @@ public class Purchases private constructor(context: Context, private val configu
     public suspend fun logIn(applicationAccountIdentifier: String): CustomerInfo = logIn(applicationAccountIdentifier, null)
 
     /// 앱 계정을 선택 이메일과 함께 연결하고 현재 권한 조회
-    public suspend fun logIn(applicationAccountIdentifier: String, email: String?): CustomerInfo = withContext(Dispatchers.IO) {
-        coordinator.logIn(applicationAccountIdentifier, email)
+    public suspend fun logIn(applicationAccountIdentifier: String, email: String?): CustomerInfo =
+        logIn(applicationAccountIdentifier, email, transferPurchases = true)
+
+    /// 직접 로그인 시 구매 이전, 저장된 세션 복원 시 기존 계정 연결만 확인
+    public suspend fun logIn(applicationAccountIdentifier: String, email: String?, transferPurchases: Boolean): CustomerInfo = withContext(Dispatchers.IO) {
+        coordinator.logIn(applicationAccountIdentifier, email, transferPurchases)
     }
 
     /// 이후 구매와 조회에 사용할 앱 계정 연결 해제

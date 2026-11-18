@@ -32,10 +32,11 @@ internal class PurchasesCoordinator(
     suspend fun refresh(): CustomerInfo = refreshCustomer().customerInfo
 
     /// 구매 갱신과 해당 요청의 재전송 결과를 같은 잠금 안에서 반환
-    private suspend fun refreshCustomer(republicationRequestIdentifier: String? = null, loginAccountIdentifier: String? = null, email: String? = null): EntitlementSynchronizationResult = synchronizationMutex.withLock {
+    private suspend fun refreshCustomer(republicationRequestIdentifier: String? = null, loginAccountIdentifier: String? = null, email: String? = null, transferPurchases: Boolean = false): EntitlementSynchronizationResult = synchronizationMutex.withLock {
         var republications = emptyList<EntitlementRepublication>()
         if (loginAccountIdentifier != null && applicationAccountIdentifier != loginAccountIdentifier) {
-            customerInfo.value = storeInformation
+            customerInfo.value = null
+            storeInformation = null
             accountEmail = null
             applicationAccountIdentifier = loginAccountIdentifier
             lastTokenInformation.clear()
@@ -112,7 +113,20 @@ internal class PurchasesCoordinator(
                     applicationAccountIdentifier, republicationRequestIdentifier)
                 // 통신 실패 시 같은 요청 식별자와 계정으로 다음 갱신에서 복구한다.
                 persistence.pendingSynchronizations = persistence.pendingSynchronizations.filterNot { it.purchaseToken == request.purchaseToken } + request
-                val result = server.republishEntitlements(request, republicationRequestIdentifier)
+                val result = server.republishEntitlements(request.copy(transferOnLogin = transferPurchases), republicationRequestIdentifier)
+                if (transferPurchases) {
+                    lastTokenInformation[purchase.purchaseToken] = result.customerInfo
+                    if (information != null) resolved.remove(information)
+                    resolved += result.customerInfo
+                    if (result.customerInfo.entitlements.any { it.active && it.productIdentifier in purchase.productIdentifiers }) {
+                        persistence.serverInactivePurchaseTokens -= purchase.purchaseToken
+                        val alreadyGranted = information?.entitlements?.any { it.active && it.productIdentifier in purchase.productIdentifiers } == true
+                        if (!alreadyGranted && !purchase.acknowledged) {
+                            persistence.pendingAcknowledgements += purchase.purchaseToken
+                            acknowledge(purchase)
+                        }
+                    }
+                }
                 results += result.republications
                 removeSynchronization(request.purchaseToken)
             }
@@ -142,9 +156,9 @@ internal class PurchasesCoordinator(
     }
 
     /// 로그인 계정 연결과 현재 권한 재전송
-    suspend fun logIn(accountIdentifier: String, email: String? = null): CustomerInfo {
+    suspend fun logIn(accountIdentifier: String, email: String? = null, transferPurchases: Boolean = true): CustomerInfo {
         require(accountIdentifier.isNotBlank() && accountIdentifier.length <= 512)
-        return refreshCustomer(UUID.randomUUID().toString(), accountIdentifier, email).customerInfo
+        return refreshCustomer(UUID.randomUUID().toString(), accountIdentifier, email, transferPurchases).customerInfo
     }
 
     /// 이후 구매와 조회에서 사용할 앱 계정 연결 해제
@@ -191,7 +205,7 @@ internal class PurchasesCoordinator(
                 recordRejectedPurchase(purchase.purchaseToken)
                 throw failure
             }
-            if (configuration.entitlementMode != EntitlementMode.ServerWithGooglePlayFallback) throw failure
+            if (configuration.entitlementMode != EntitlementMode.ServerWithGooglePlayFallback || applicationAccountIdentifier != null) throw failure
             errors.tryEmit(failure)
             // 서버 오류는 비활성 판정이 아니므로 동기화를 남기고 현재 기기 구매로 복구한다.
             if (purchase.purchaseToken in persistence.serverInactivePurchaseTokens) return CustomerInfo(CustomerInfoSource.Server)
