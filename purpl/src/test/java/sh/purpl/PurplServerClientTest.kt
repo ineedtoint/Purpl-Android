@@ -45,7 +45,7 @@ class PurplServerClientTest {
 
     /// 현재 요금제와 혜택 보존 및 이전 응답과의 호환
     @Test fun currentBasePlanAndOfferAreOptionalServerFacts() {
-        val response = JSONObject("""{"customerIdentifier":"customer","entitlements":[{"identifier":"pro","displayName":"Pro","productIdentifier":"pro","environment":"production","status":"active","active":true,"startsAt":null,"expiresAt":null,"revokedAt":null,"lastVerifiedAt":"2026-01-01T00:00:00Z","basePlanIdentifier":"yearly","offerIdentifier":"welcome"}]}""")
+        val response = JSONObject("""{"customerIdentifier":"customer","entitlements":[{"identifier":"pro","displayName":"Pro","store":"googlePlay","ownershipType":"purchased","productIdentifier":"pro","environment":"production","status":"active","active":true,"startsAt":null,"expiresAt":null,"revokedAt":null,"lastVerifiedAt":"2026-01-01T00:00:00Z","basePlanIdentifier":"yearly","offerIdentifier":"welcome"}]}""")
         val entitlement = decodeCustomerInfo(response).entitlements.single()
         assertEquals("yearly", entitlement.basePlanIdentifier)
         assertEquals("welcome", entitlement.offerIdentifier)
@@ -53,26 +53,30 @@ class PurplServerClientTest {
         val previousContract = decodeCustomerInfo(response).entitlements.single()
         assertNull(previousContract.basePlanIdentifier)
         assertNull(previousContract.offerIdentifier)
-        assertEquals(EntitlementOrigin.Unknown, previousContract.origin)
+        assertEquals(EntitlementStore.GooglePlay, previousContract.store)
+        assertEquals(EntitlementOwnershipType.Purchased, previousContract.ownershipType)
         val entry = response.getJSONArray("entitlements").getJSONObject(0)
-        for ((value, expected) in mapOf("appStore" to EntitlementOrigin.AppStore, "googlePlay" to EntitlementOrigin.GooglePlay,
-            "grant" to EntitlementOrigin.Grant, "unknown" to EntitlementOrigin.Unknown, "futureIssuer" to EntitlementOrigin.Unknown)) {
-            entry.put("origin", value)
-            val information = decodeCustomerInfo(response)
-            assertEquals(expected, information.entitlements.single().origin)
-            assertTrue(information.isEntitlementActive("pro"))
-        }
+        entry.put("store", "purpl").put("ownershipType", "granted")
+        val granted = decodeCustomerInfo(response).entitlements.single()
+        assertEquals(EntitlementStore.Purpl, granted.store)
+        assertEquals(EntitlementOwnershipType.Granted, granted.ownershipType)
+        entry.put("store", "futureStore").put("ownershipType", "futureOwnership")
+        val unrecognized = decodeCustomerInfo(response).entitlements.single()
+        assertEquals(EntitlementStore.Unknown, unrecognized.store)
+        assertEquals(EntitlementOwnershipType.Unknown, unrecognized.ownershipType)
+        entry.remove("ownershipType")
+        assertThrows(PurchasesException::class.java) { decodeCustomerInfo(response) }
     }
 
     /// 서버가 알 수 없는 권한 상태를 보내면 활성으로 추측하지 않음
     @Test fun unknownServerStatusIsRejected() {
-        val response = JSONObject("""{"customerIdentifier":"customer","entitlements":[{"identifier":"pro","displayName":"Pro","productIdentifier":"pro","environment":"production","status":"unknown","active":true,"startsAt":null,"expiresAt":null,"revokedAt":null,"lastVerifiedAt":"2026-01-01T00:00:00Z"}]}""")
+        val response = JSONObject("""{"customerIdentifier":"customer","entitlements":[{"identifier":"pro","displayName":"Pro","store":"googlePlay","ownershipType":"purchased","productIdentifier":"pro","environment":"production","status":"unknown","active":true,"startsAt":null,"expiresAt":null,"revokedAt":null,"lastVerifiedAt":"2026-01-01T00:00:00Z"}]}""")
         assertThrows(PurchasesException::class.java) { decodeCustomerInfo(response) }
     }
 
     /// 서버 만료일과 비활성 상태를 그대로 보존
     @Test fun expiryAndInactiveServerFactsArePreserved() {
-        val response = JSONObject("""{"customerIdentifier":"customer","entitlements":[{"identifier":"pro","displayName":"Pro","productIdentifier":"pro","environment":"production","status":"expired","active":false,"startsAt":null,"expiresAt":"2026-01-01T00:00:00Z","revokedAt":null,"lastVerifiedAt":"2026-01-02T00:00:00Z"}]}""")
+        val response = JSONObject("""{"customerIdentifier":"customer","entitlements":[{"identifier":"pro","displayName":"Pro","store":"googlePlay","ownershipType":"purchased","productIdentifier":"pro","environment":"production","status":"expired","active":false,"startsAt":null,"expiresAt":"2026-01-01T00:00:00Z","revokedAt":null,"lastVerifiedAt":"2026-01-02T00:00:00Z"}]}""")
         val information = decodeCustomerInfo(response)
         assertFalse(information.isEntitlementActive("pro"))
         assertEquals(Instant.parse("2026-01-01T00:00:00Z"), information.entitlements.single().expiresAt)

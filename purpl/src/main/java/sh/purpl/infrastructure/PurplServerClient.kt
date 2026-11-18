@@ -120,10 +120,12 @@ internal fun decodeEntitlementSynchronizationResult(response: JSONObject): Entit
 /// 서버 고객 응답의 엄격한 권한 해석
 internal fun decodeCustomerInfo(response: JSONObject): CustomerInfo = decodeResponse {
     val entitlements = response.getJSONArray("entitlements").objects().map { item ->
-        val originIdentifier = item.optionalString("origin")
+        val store = item.getString("store")
+        val ownershipType = item.getString("ownershipType")
         CustomerEntitlement(
             identifier = item.getString("identifier"), displayName = item.getString("displayName"),
-            origin = EntitlementOrigin.entries.firstOrNull { it.identifier == originIdentifier } ?: EntitlementOrigin.Unknown,
+            store = EntitlementStore.entries.firstOrNull { it.identifier == store } ?: EntitlementStore.Unknown,
+            ownershipType = EntitlementOwnershipType.entries.firstOrNull { it.identifier == ownershipType } ?: EntitlementOwnershipType.Unknown,
             productIdentifier = item.optionalString("productIdentifier"),
             environment = when (item.getString("environment")) { "production" -> StoreEnvironment.Production; "sandbox" -> StoreEnvironment.Sandbox; else -> StoreEnvironment.Unknown },
             status = when (item.getString("status")) {

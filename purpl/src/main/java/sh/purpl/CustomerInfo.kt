@@ -2,11 +2,18 @@ package sh.purpl
 
 import java.time.Instant
 
-/// 개별 권한을 부여한 경로
-public enum class EntitlementOrigin(public val identifier: String) {
+/// 권한을 제공한 채널
+public enum class EntitlementStore(public val identifier: String) {
     AppStore("appStore"),
     GooglePlay("googlePlay"),
-    Grant("grant"),
+    Purpl("purpl"),
+    Unknown("unknown"),
+}
+
+/// 사용자가 권한을 얻은 방식
+public enum class EntitlementOwnershipType(public val identifier: String) {
+    Purchased("purchased"),
+    Granted("granted"),
     Unknown("unknown"),
 }
 
@@ -100,8 +107,10 @@ public data class CustomerEntitlement(
     // 서버에서 확인한 Google 혜택, 기본 요금제 또는 기기 조회는 null
     /** The Google Play offer identifier verified by the server. `null` for a base plan without an offer or when resolved on the device. */
     val offerIdentifier: String? = null,
-    /// 개별 이용 권한이 생긴 경로
-    val origin: EntitlementOrigin = EntitlementOrigin.GooglePlay,
+    /// 권한을 제공한 채널
+    val store: EntitlementStore = EntitlementStore.GooglePlay,
+    /// 사용자가 권한을 얻은 방식
+    val ownershipType: EntitlementOwnershipType = EntitlementOwnershipType.Purchased,
 )
 
 // 현재 스토어 계정에서 확인한 구매 전체의 권한
@@ -123,7 +132,7 @@ public data class CustomerInfo(
         get() {
             val now = Instant.now()
             return entitlements.asSequence().filter { entitlement ->
-                entitlement.active && (entitlement.origin != EntitlementOrigin.Grant ||
+                entitlement.active && (entitlement.ownershipType != EntitlementOwnershipType.Granted ||
                     entitlement.expiresAt == null || entitlement.expiresAt.isAfter(now))
             }.map { it.identifier }.toSet()
         }

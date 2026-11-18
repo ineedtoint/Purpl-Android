@@ -427,7 +427,7 @@ class PurchasesCoordinatorTest {
         val server = FakeServer()
         val coordinator = coordinator(FakeStore(emptyList()), server, MemoryPersistence())
         val granted = CustomerEntitlement("pro", active = true, lastVerifiedAt = Instant.now(),
-            origin = EntitlementOrigin.Grant)
+            store = EntitlementStore.Purpl, ownershipType = EntitlementOwnershipType.Granted)
         server.accountGrants = listOf(granted)
         val result = coordinator.logIn("review-account", "review@example.com")
         assertEquals(setOf("pro"), result.activeEntitlementIdentifiers)
