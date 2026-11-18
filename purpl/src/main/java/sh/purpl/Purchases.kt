@@ -29,7 +29,8 @@ public class Purchases private constructor(context: Context, private val configu
     private val applicationContext = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val store = GooglePlayPurchaseService(applicationContext)
-    private val server = PurplServerClient(configuration, applicationContext.packageName)
+    private val server = PurplServerClient(configuration, applicationContext.packageName,
+        if (applicationContext.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) "sandbox" else "production")
     private val persistence = NoBackupPurchasesPersistence(applicationContext)
     private val coordinator = PurchasesCoordinator(applicationContext.packageName, configuration, store, server, persistence)
     private val refreshRequests = Channel<Unit>(Channel.CONFLATED)
@@ -105,8 +106,11 @@ public class Purchases private constructor(context: Context, private val configu
     public suspend fun customerInfo(): CustomerInfo = refreshCustomerInfo()
 
     /// 로그인한 앱 계정 연결과 현재 권한 웹훅 재전송 접수
-    public suspend fun logIn(applicationAccountIdentifier: String): CustomerInfo = withContext(Dispatchers.IO) {
-        coordinator.logIn(applicationAccountIdentifier)
+    public suspend fun logIn(applicationAccountIdentifier: String): CustomerInfo = logIn(applicationAccountIdentifier, null)
+
+    /// 앱 계정을 선택 이메일과 함께 연결하고 현재 권한 조회
+    public suspend fun logIn(applicationAccountIdentifier: String, email: String?): CustomerInfo = withContext(Dispatchers.IO) {
+        coordinator.logIn(applicationAccountIdentifier, email)
     }
 
     /// 이후 구매와 조회에 사용할 앱 계정 연결 해제

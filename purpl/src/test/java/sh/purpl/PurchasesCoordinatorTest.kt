@@ -422,6 +422,32 @@ class PurchasesCoordinatorTest {
         assertEquals(requestIdentifier, persistence.pendingSynchronizations.single().republicationRequestIdentifier)
     }
 
+    /// 구매가 없는 계정의 부여·회수·전환 및 로그아웃
+    @Test fun accountGrantsFollowLoginWithoutPurchases() = runTest {
+        val server = FakeServer()
+        val coordinator = coordinator(FakeStore(emptyList()), server, MemoryPersistence())
+        val granted = CustomerEntitlement("pro", active = true, lastVerifiedAt = Instant.now(),
+            origin = EntitlementOrigin.ManualGrant)
+        server.accountGrants = listOf(granted)
+        val result = coordinator.logIn("review-account", "review@example.com")
+        assertEquals(setOf("pro"), result.activeEntitlementIdentifiers)
+        assertEquals("review-account" to "review@example.com", server.identifiedAccount)
+        assertTrue(server.requests.isEmpty())
+        assertTrue(server.republications.isEmpty())
+
+        server.accountGrants = emptyList()
+        assertFalse(coordinator.refresh().isEntitlementActive("pro"))
+        server.accountGrants = listOf(granted.copy(expiresAt = Instant.EPOCH))
+        assertFalse(coordinator.refresh().isEntitlementActive("pro"))
+        server.accountGrants = listOf(granted)
+        coordinator.refresh()
+        coordinator.logOut()
+        assertFalse(coordinator.customerInfo.value!!.isEntitlementActive("pro"))
+        server.accountGrants = emptyList()
+        assertFalse(coordinator.logIn("another-account").isEntitlementActive("pro"))
+        assertEquals("another-account" to null, server.identifiedAccount)
+    }
+
     /// 테스트용 코디네이터 구성
     private fun coordinator(store: FakeStore, server: FakeServer, persistence: MemoryPersistence, mode: EntitlementMode = EntitlementMode.ServerWithGooglePlayFallback): PurchasesCoordinator = PurchasesCoordinator("test.application", PurchasesConfiguration(mapping, mode, encodedPublicKey), store, server, persistence)
 
@@ -463,6 +489,15 @@ private class FakeStore(var purchases: List<StorePurchase>) : PurchasesStore {
 
 /// 서버 응답과 요청 토큰을 제어하는 대역
 private class FakeServer : PurchasesServer {
+    var accountGrants = emptyList<CustomerEntitlement>()
+    var identifiedAccount: Pair<String, String?>? = null
+
+    /// 테스트 계정 권한 응답
+    override suspend fun identifyAccount(identifier: String, email: String?): CustomerInfo {
+        identifiedAccount = identifier to email
+        return CustomerInfo(CustomerInfoSource.Server, entitlements = accountGrants)
+    }
+
     val republications = mutableListOf<SynchronizationRequest>()
     var republicationFailure: Throwable? = null
     /// 별도 복구 API 호출과 멱등 식별자 기록

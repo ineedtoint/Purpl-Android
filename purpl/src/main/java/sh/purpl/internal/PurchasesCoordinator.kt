@@ -23,6 +23,8 @@ internal class PurchasesCoordinator(
     private val synchronizationMutex = Mutex()
     @Volatile var applicationAccountIdentifier: String? = configuration.applicationAccountIdentifier
         private set
+    private var accountEmail: String? = null
+    private var storeInformation: CustomerInfo? = null
     private val lastTokenInformation = mutableMapOf<String, CustomerInfo>()
     private val verifier = configuration.googlePlayPublicKey?.takeIf { it.isNotBlank() }?.let(::PurchaseSignatureVerifier)
 
@@ -30,12 +32,15 @@ internal class PurchasesCoordinator(
     suspend fun refresh(): CustomerInfo = refreshCustomer().customerInfo
 
     /// 구매 갱신과 해당 요청의 재전송 결과를 같은 잠금 안에서 반환
-    private suspend fun refreshCustomer(republicationRequestIdentifier: String? = null, loginAccountIdentifier: String? = null): EntitlementSynchronizationResult = synchronizationMutex.withLock {
+    private suspend fun refreshCustomer(republicationRequestIdentifier: String? = null, loginAccountIdentifier: String? = null, email: String? = null): EntitlementSynchronizationResult = synchronizationMutex.withLock {
         var republications = emptyList<EntitlementRepublication>()
         if (loginAccountIdentifier != null && applicationAccountIdentifier != loginAccountIdentifier) {
+            customerInfo.value = storeInformation
+            accountEmail = null
             applicationAccountIdentifier = loginAccountIdentifier
             lastTokenInformation.clear()
         }
+        if (loginAccountIdentifier != null && email != null) accountEmail = email
         // 조회 실패를 빈 구매로 바꾸지 않아 기존 화면을 무료 상태로 덮어쓰지 않는다.
         val purchases = store.queryPurchases().distinctBy { it.purchaseToken }
         val completed = purchases.filter { it.state == StorePurchaseState.Purchased }
@@ -113,18 +118,40 @@ internal class PurchasesCoordinator(
             }
             republications = results
         }
-        EntitlementSynchronizationResult(mergeCustomerInformation(resolved, defaultSource()).also { customerInfo.value = it }, republications)
+        val storeResult = mergeCustomerInformation(resolved, defaultSource())
+        storeInformation = storeResult
+        val account = applicationAccountIdentifier
+        val grants = if (account != null && configuration.entitlementMode != EntitlementMode.GooglePlay) {
+            try {
+                server.identifyAccount(account, accountEmail).entitlements
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                // 계정 조회 실패가 검증된 구매를 제거하지 않도록 구매 결과를 먼저 전달한다.
+                customerInfo.value = storeResult
+                throw error
+            }
+        } else emptyList()
+        val information = if (grants.isEmpty()) storeResult else storeResult.copy(
+            source = if (storeResult.entitlements.isNotEmpty() && storeResult.source != CustomerInfoSource.Server)
+                CustomerInfoSource.Mixed else CustomerInfoSource.Server,
+            entitlements = storeResult.entitlements + grants,
+        )
+        customerInfo.value = information
+        EntitlementSynchronizationResult(information, republications)
     }
 
     /// 로그인 계정 연결과 현재 권한 재전송
-    suspend fun logIn(accountIdentifier: String): CustomerInfo {
+    suspend fun logIn(accountIdentifier: String, email: String? = null): CustomerInfo {
         require(accountIdentifier.isNotBlank() && accountIdentifier.length <= 512)
-        return refreshCustomer(UUID.randomUUID().toString(), accountIdentifier).customerInfo
+        return refreshCustomer(UUID.randomUUID().toString(), accountIdentifier, email).customerInfo
     }
 
     /// 이후 구매와 조회에서 사용할 앱 계정 연결 해제
     suspend fun logOut() = synchronizationMutex.withLock {
         applicationAccountIdentifier = null
+        accountEmail = null
+        customerInfo.value = storeInformation
         lastTokenInformation.clear()
     }
 

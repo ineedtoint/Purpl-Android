@@ -2,6 +2,13 @@ package sh.purpl
 
 import java.time.Instant
 
+/// 개별 권한을 부여한 경로
+public enum class EntitlementOrigin(public val identifier: String) {
+    AppStore("appStore"),
+    GooglePlay("googlePlay"),
+    ManualGrant("manualGrant"),
+}
+
 // 고객 정보의 권한 확인 출처
 /** The source used to resolve customer information. */
 public enum class CustomerInfoSource {
@@ -92,6 +99,8 @@ public data class CustomerEntitlement(
     // 서버에서 확인한 Google 혜택, 기본 요금제 또는 기기 조회는 null
     /** The Google Play offer identifier verified by the server. `null` for a base plan without an offer or when resolved on the device. */
     val offerIdentifier: String? = null,
+    /// 개별 이용 권한이 생긴 경로
+    val origin: EntitlementOrigin = EntitlementOrigin.GooglePlay,
 )
 
 // 현재 스토어 계정에서 확인한 구매 전체의 권한
@@ -109,7 +118,14 @@ public data class CustomerInfo(
 ) {
     // 현재 활성인 권한 식별자 전체
     /** The identifiers of entitlements that are currently active. */
-    val activeEntitlementIdentifiers: Set<String> get() = entitlements.filter { it.active }.map { it.identifier }.toSet()
+    val activeEntitlementIdentifiers: Set<String>
+        get() {
+            val now = Instant.now()
+            return entitlements.asSequence().filter { entitlement ->
+                entitlement.active && (entitlement.origin != EntitlementOrigin.ManualGrant ||
+                    entitlement.expiresAt == null || entitlement.expiresAt.isAfter(now))
+            }.map { it.identifier }.toSet()
+        }
 
     // 특정 이용 권한의 현재 활성 여부
     /**

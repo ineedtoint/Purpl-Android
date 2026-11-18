@@ -16,7 +16,16 @@ import java.time.Instant
 internal class PurplServerClient(
     private val configuration: PurchasesConfiguration,
     private val packageName: String,
+    private val accountEnvironment: String = "production",
 ) : PurchasesServer {
+    /// 구매 전에 로그인한 계정도 앱 범위 안에서 등록하고 권한 조회
+    override suspend fun identifyAccount(identifier: String, email: String?): CustomerInfo {
+        val body = JSONObject().put("provider", "google").put("storeApplicationIdentifier", packageName)
+            .put("environment", accountEnvironment).put("applicationAccountIdentifier", identifier)
+        if (email != null) body.put("email", email)
+        return decodeCustomerInfo(request("/v1/customers/account/identify", body))
+    }
+
     /// 구매 토큰으로 Google 서버 검증 결과 요청 또는 미완료 복구 재시도
     override suspend fun synchronize(request: SynchronizationRequest): CustomerInfo {
         request.republicationRequestIdentifier?.let {
@@ -113,6 +122,12 @@ internal fun decodeCustomerInfo(response: JSONObject): CustomerInfo = decodeResp
     val entitlements = response.getJSONArray("entitlements").objects().map { item ->
         CustomerEntitlement(
             identifier = item.getString("identifier"), displayName = item.getString("displayName"),
+            origin = when (item.optionalString("origin")) {
+                null, "googlePlay" -> EntitlementOrigin.GooglePlay
+                "appStore" -> EntitlementOrigin.AppStore
+                "manualGrant" -> EntitlementOrigin.ManualGrant
+                else -> throw IllegalArgumentException("알 수 없는 권한 출처")
+            },
             productIdentifier = item.optionalString("productIdentifier"),
             environment = when (item.getString("environment")) { "production" -> StoreEnvironment.Production; "sandbox" -> StoreEnvironment.Sandbox; else -> StoreEnvironment.Unknown },
             status = when (item.getString("status")) {
