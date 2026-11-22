@@ -426,6 +426,17 @@ class PurchasesCoordinatorTest {
         assertEquals(requestIdentifier, persistence.pendingSynchronizations.single().republicationRequestIdentifier)
     }
 
+    /// 같은 구매를 두 범위에서 확인해도 원본은 하나만 유지
+    @Test fun scopedPurchaseEntitlements() {
+        val purchase = CustomerEntitlement("export", active = true, lastVerifiedAt = Instant.now())
+        val local = CustomerInfo(CustomerInfoSource.Server, entitlements = listOf(purchase))
+        val combined = local.includingAccountEntitlements(listOf(purchase))
+        assertEquals(1, combined.entitlements.size)
+        assertEquals(setOf("export"), combined.activeEntitlementIdentifiers(EntitlementScope.Store))
+        assertEquals(setOf("export"), combined.activeEntitlementIdentifiers(EntitlementScope.Account))
+        assertTrue(local.activeEntitlementIdentifiers(EntitlementScope.Account).isEmpty())
+    }
+
     /// 구매가 없는 계정의 부여·회수·전환 및 로그아웃
     @Test fun accountGrantsFollowLoginWithoutPurchases() = runTest {
         val server = FakeServer()
@@ -435,6 +446,14 @@ class PurchasesCoordinatorTest {
         server.accountGrants = listOf(granted)
         val result = coordinator.logIn("review-account", "review@example.com")
         assertEquals(setOf("pro"), result.activeEntitlementIdentifiers)
+        assertTrue(result.activeEntitlementIdentifiers(EntitlementScope.Store).isEmpty())
+        assertEquals(setOf("pro"), result.activeEntitlementIdentifiers(EntitlementScope.Account))
+        val applePurchase = granted.copy(store = EntitlementStore.AppStore, ownershipType = EntitlementOwnershipType.Purchased)
+        server.accountGrants = listOf(applePurchase)
+        val crossStore = coordinator.refresh()
+        assertEquals(setOf("pro"), crossStore.activeEntitlementIdentifiers)
+        assertTrue(crossStore.activeEntitlementIdentifiers(EntitlementScope.Store).isEmpty())
+        assertEquals(setOf("pro"), crossStore.activeEntitlementIdentifiers(EntitlementScope.Account))
         assertEquals("review-account" to "review@example.com", server.identifiedAccount)
         assertTrue(server.requests.isEmpty())
         assertTrue(server.republications.isEmpty())

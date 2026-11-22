@@ -38,6 +38,17 @@ class PaywallPurchaseOwnershipTest {
         assertEquals(PaywallPurchaseOwnership.Available, purchaseOwnership(option("monthly"), null))
     }
 
+    /// 같은 상품 ID의 다른 스토어 구매는 Google 구독 보유로 표시하지 않음
+    @Test fun accountPurchaseDoesNotOwnGoogleOption() {
+        val information = customerInfo("monthly")
+        val otherPurchase = information.entitlements.single().copy(
+            store = sh.purpl.EntitlementStore.AppStore,
+            scopes = setOf(sh.purpl.EntitlementScope.Account)
+        )
+        assertEquals(PaywallPurchaseOwnership.Available,
+            purchaseOwnership(option("monthly"), information.copy(entitlements = listOf(otherPurchase))))
+    }
+
     /// 비소모성 상품은 주기 없이 재구매 차단
     @Test fun nonConsumableOwnershipDoesNotNeedBasePlan() {
         val option = option(null).copy(kind = ProductKind.NonConsumable)

@@ -135,7 +135,7 @@ internal class PurchasesCoordinator(
         val storeResult = mergeCustomerInformation(resolved, defaultSource())
         storeInformation = storeResult
         val account = applicationAccountIdentifier
-        val grants = if (account != null && configuration.entitlementMode != EntitlementMode.GooglePlay) {
+        val accountEntitlements = if (account != null && configuration.entitlementMode != EntitlementMode.GooglePlay) {
             try {
                 server.identifyAccount(account, accountEmail).entitlements
             } catch (error: CancellationException) {
@@ -146,11 +146,11 @@ internal class PurchasesCoordinator(
                 throw error
             }
         } else emptyList()
-        val information = if (grants.isEmpty()) storeResult else storeResult.copy(
-            source = if (storeResult.entitlements.isNotEmpty() && storeResult.source != CustomerInfoSource.Server)
-                CustomerInfoSource.Mixed else CustomerInfoSource.Server,
-            entitlements = storeResult.entitlements + grants,
+        // 서버가 현재 요청 계정과 실제로 연결한 구매만 계정 범위에도 포함
+        val linkedPurchases = if (account == null) emptyList() else latestServerEntitlements(
+            resolved.filter { it.customerIdentifiers.isNotEmpty() }
         )
+        val information = storeResult.includingAccountEntitlements(linkedPurchases + accountEntitlements)
         customerInfo.value = information
         EntitlementSynchronizationResult(information, republications)
     }

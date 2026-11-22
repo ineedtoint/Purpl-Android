@@ -14,6 +14,18 @@ Purpl 관리 서비스를 사용하지 않아도 로컬 구성으로 구매, 복
 
 이 저장소는 Android Gradle Plugin 9.3.3, Kotlin 2.4.20, Gradle 9.5.0과 Android SDK 37을 사용합니다.
 
+## 권한 범위
+
+기본 프로퍼티는 현재 스토어와 로그인 계정의 활성 권한 ID를 합칩니다.
+
+```kotlin
+customerInfo.activeEntitlementIdentifiers
+customerInfo.activeEntitlementIdentifiers(EntitlementScope.Store)
+customerInfo.activeEntitlementIdentifiers(EntitlementScope.Account)
+```
+
+서버 모드에서 다른 스토어 구매까지 사용하려면 설정의 `accountAccessTokenProvider`에서 로그인한 사용자와 환경에 맞는 단기 토큰을 반환하세요. 개발자 서버는 **자체 로그인 세션**으로 계정을 확인한 뒤 `entitlements:read` 자격 증명으로 Purpl의 `POST /v1/customers/account/access-token`을 호출합니다. 본문은 `applicationAccountIdentifier`와 `environment`(production/sandbox)입니다. 응답의 `accessToken`은 `expiresAt`까지 계정·환경별로 재사용할 수 있습니다. 제공자가 없으면 계정 범위에는 직접 부여와 현재 기기에서 계정 연결이 확인된 구매가 포함됩니다. 로그아웃하면 계정 범위는 비어 있습니다.
+
 ## 설치
 
 앱 프로젝트 옆에 저장소를 복제합니다.
@@ -32,8 +44,8 @@ includeBuild("../Purpl-Android")
 
 ```kotlin
 dependencies {
-    implementation("sh.purpl:purpl:0.2.0")
-    implementation("sh.purpl:purpl-ui:0.2.0")
+    implementation("sh.purpl:purpl:0.3.0")
+    implementation("sh.purpl:purpl-ui:0.3.0")
 }
 ```
 

@@ -155,7 +155,7 @@ public class Purchases private constructor(context: Context, private val configu
         if (result == PurchaseResult.Completed) {
             try {
                 val information = refreshCustomerInfo()
-                if (information.entitlements.none { it.active && it.productIdentifier in acceptedProducts }) throw PurchasesException(PurchasesErrorCode.PurchaseNotCompleted, "구매 권한이 아직 확인되지 않았습니다.")
+                if (information.entitlements(EntitlementScope.Store).none { it.active && it.productIdentifier in acceptedProducts }) throw PurchasesException(PurchasesErrorCode.PurchaseNotCompleted, "구매 권한이 아직 확인되지 않았습니다.")
             } finally { refreshRequests.trySend(Unit) }
         }
         return result

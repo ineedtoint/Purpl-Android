@@ -123,6 +123,8 @@ public data class PurchasesConfiguration(
     // 앱 자체 계정 연결에 사용할 선택 식별자
     /** An optional identifier used to link the app's own account. */
     val applicationAccountIdentifier: String? = null,
+    /// 로그인 계정과 환경에 한정된 단기 조회 토큰 제공
+    val accountAccessTokenProvider: (suspend (String, StoreEnvironment) -> String)? = null,
 ) {
     init {
         require(entitlementMode == EntitlementMode.Server || purchaseConfiguration != null)

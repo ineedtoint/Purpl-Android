@@ -14,6 +14,18 @@ You can use purchases, restoration, entitlement checks, and local paywalls witho
 
 This repository uses Android Gradle Plugin 9.3.3, Kotlin 2.4.20, Gradle 9.5.0, and Android SDK 37.
 
+## Entitlement scopes
+
+The default property returns the union of active identifiers for the current store and signed-in app account.
+
+```kotlin
+customerInfo.activeEntitlementIdentifiers
+customerInfo.activeEntitlementIdentifiers(EntitlementScope.Store)
+customerInfo.activeEntitlementIdentifiers(EntitlementScope.Account)
+```
+
+In server-backed modes, configure `accountAccessTokenProvider` to include purchases from other stores. Your backend resolves the account from **its authenticated session**, calls `POST /v1/customers/account/access-token` with its `entitlements:read` credential and sends `applicationAccountIdentifier` and `environment` (production/sandbox). Return the resulting `accessToken` to the SDK. Cache it per account and environment until `expiresAt`. Without a provider, account scope contains direct grants and purchases verified as linked on the current device. Signing out clears the account scope.
+
 ## Installation
 
 Clone the repository next to your app project.
@@ -32,8 +44,8 @@ Add the modules to your app's `build.gradle.kts`.
 
 ```kotlin
 dependencies {
-    implementation("sh.purpl:purpl:0.2.0")
-    implementation("sh.purpl:purpl-ui:0.2.0")
+    implementation("sh.purpl:purpl:0.3.0")
+    implementation("sh.purpl:purpl-ui:0.3.0")
 }
 ```
 

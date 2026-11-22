@@ -2,6 +2,12 @@ package sh.purpl
 
 import java.time.Instant
 
+/// 권한을 확인한 범위
+public enum class EntitlementScope {
+    Store,
+    Account,
+}
+
 /// 권한을 제공한 채널
 public enum class EntitlementStore(public val identifier: String) {
     AppStore("appStore"),
@@ -111,6 +117,9 @@ public data class CustomerEntitlement(
     val store: EntitlementStore = EntitlementStore.GooglePlay,
     /// 사용자가 권한을 얻은 방식
     val ownershipType: EntitlementOwnershipType = EntitlementOwnershipType.Purchased,
+    /// 이번 조회에서 이 권한을 확인한 범위
+    val scopes: Set<EntitlementScope> = if (ownershipType == EntitlementOwnershipType.Granted)
+        setOf(EntitlementScope.Account) else setOf(EntitlementScope.Store),
 )
 
 // 현재 스토어 계정에서 확인한 구매 전체의 권한
@@ -126,16 +135,46 @@ public data class CustomerInfo(
     /** The entitlements across all purchases, without duplicates. */
     val entitlements: List<CustomerEntitlement> = emptyList(),
 ) {
-    // 현재 활성인 권한 식별자 전체
-    /** The identifiers of entitlements that are currently active. */
+    /// 현재 스토어와 로그인 계정 중 하나에서 활성인 권한 식별자
     val activeEntitlementIdentifiers: Set<String>
-        get() {
-            val now = Instant.now()
-            return entitlements.asSequence().filter { entitlement ->
-                entitlement.active && (entitlement.ownershipType != EntitlementOwnershipType.Granted ||
-                    entitlement.expiresAt == null || entitlement.expiresAt.isAfter(now))
-            }.map { it.identifier }.toSet()
+        get() = activeIdentifiers(entitlements)
+
+    /// 지정한 범위에서 확인한 권한 목록
+    public fun entitlements(scope: EntitlementScope): List<CustomerEntitlement> =
+        entitlements.filter { scope in it.scopes }
+
+    /// 지정한 범위에서 활성인 권한 식별자
+    public fun activeEntitlementIdentifiers(scope: EntitlementScope): Set<String> =
+        activeIdentifiers(entitlements(scope), scope)
+
+    /// 현재 시각의 활성 권한 식별자 계산
+    private fun activeIdentifiers(entries: List<CustomerEntitlement>, scope: EntitlementScope? = null): Set<String> {
+        val now = Instant.now()
+        return entries.filter { entitlement ->
+            val checkExpiry = entitlement.ownershipType == EntitlementOwnershipType.Granted ||
+                ((scope == EntitlementScope.Account || EntitlementScope.Store !in entitlement.scopes) &&
+                    entitlement.status != CustomerEntitlementStatus.GracePeriod)
+            entitlement.active && (!checkExpiry || entitlement.expiresAt == null || entitlement.expiresAt.isAfter(now))
+        }.mapTo(mutableSetOf()) { it.identifier }
+    }
+
+    /// 스토어 결과에 계정 권한을 결합하고 같은 원본의 범위를 병합
+    internal fun includingAccountEntitlements(entries: List<CustomerEntitlement>): CustomerInfo {
+        if (entries.isEmpty()) return this
+        val combined = entitlements.toMutableList()
+        for (entry in entries) {
+            val accountEntry = entry.copy(scopes = setOf(EntitlementScope.Account))
+            val index = combined.indexOfFirst { it.copy(scopes = accountEntry.scopes) == accountEntry }
+            if (index >= 0) {
+                combined[index] = accountEntry.copy(scopes = combined[index].scopes + EntitlementScope.Account)
+            } else {
+                combined.add(accountEntry)
+            }
         }
+        val combinedSource = if (entitlements.isNotEmpty() && source != CustomerInfoSource.Server)
+            CustomerInfoSource.Mixed else CustomerInfoSource.Server
+        return copy(source = combinedSource, entitlements = combined)
+    }
 
     // 특정 이용 권한의 현재 활성 여부
     /**

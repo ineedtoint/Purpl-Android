@@ -6,7 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose") version "2.4.20" apply false
     id("org.jetbrains.dokka") version "2.2.0"
 }
-allprojects { group = "sh.purpl"; version = "0.2.0" }
+allprojects { group = "sh.purpl"; version = "0.3.0" }
 
 // purpl과 purpl-ui의 API Reference를 하나의 사이트로 통합
 dependencies {

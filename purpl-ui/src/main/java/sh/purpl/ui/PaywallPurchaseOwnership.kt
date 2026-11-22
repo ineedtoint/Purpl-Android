@@ -1,6 +1,7 @@
 package sh.purpl.ui
 
 import sh.purpl.CustomerInfo
+import sh.purpl.EntitlementScope
 import sh.purpl.ProductKind
 import sh.purpl.StorePurchaseOption
 
@@ -9,7 +10,7 @@ internal enum class PaywallPurchaseOwnership { Available, Owned, UnknownBasePlan
 
 /// 활성 권한의 상품과 서버가 확인한 기본 요금제로 중복 구매 판별
 internal fun purchaseOwnership(option: StorePurchaseOption, customerInfo: CustomerInfo?): PaywallPurchaseOwnership {
-    val entitlements = customerInfo?.entitlements.orEmpty().filter {
+    val entitlements = customerInfo?.entitlements(EntitlementScope.Store).orEmpty().filter {
         it.active && it.productIdentifier == option.option.productIdentifier
     }
     if (entitlements.isEmpty()) return PaywallPurchaseOwnership.Available
