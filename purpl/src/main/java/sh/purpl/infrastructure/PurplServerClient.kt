@@ -23,9 +23,7 @@ internal class PurplServerClient(
         val body = JSONObject().put("provider", "google").put("storeApplicationIdentifier", packageName)
             .put("environment", accountEnvironment).put("applicationAccountIdentifier", identifier)
         if (email != null) body.put("email", email)
-        val environment = if (accountEnvironment == "production") StoreEnvironment.Production else StoreEnvironment.Sandbox
-        val token = configuration.accountAccessTokenProvider?.invoke(identifier, environment)
-        return decodeCustomerInfo(request("/v1/customers/account/identify", body, token))
+        return decodeCustomerInfo(request("/v1/customers/account/identify", body))
     }
 
     /// 구매 토큰으로 Google 서버 검증 결과 요청 또는 미완료 복구 재시도
@@ -61,14 +59,13 @@ internal class PurplServerClient(
     }
 
     /// 제한된 연결 시간으로 공개 API 호출
-    private suspend fun request(path: String, body: JSONObject? = null, accountToken: String? = null): JSONObject = withContext(Dispatchers.IO) {
+    private suspend fun request(path: String, body: JSONObject? = null): JSONObject = withContext(Dispatchers.IO) {
         val connection = URI(configuration.serverBaseUrl.trimEnd('/') + path).toURL().openConnection() as HttpURLConnection
         try {
             connection.connectTimeout = 15_000
             connection.readTimeout = 15_000
             connection.instanceFollowRedirects = false
             connection.setRequestProperty("Accept", "application/json")
-            if (accountToken != null) connection.setRequestProperty("Authorization", "Bearer $accountToken")
             if (body != null) {
                 connection.requestMethod = "POST"
                 connection.doOutput = true

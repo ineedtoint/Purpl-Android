@@ -5,7 +5,7 @@ plugins {
 android {
     namespace = "sh.purpl.sample"
     compileSdk = 37
-    defaultConfig { applicationId = "sh.purpl.sample"; minSdk = 26; targetSdk = 37; versionCode = 3; versionName = "0.3.0" }
+    defaultConfig { applicationId = "sh.purpl.sample"; minSdk = 26; targetSdk = 37; versionCode = 4; versionName = "0.4.0" }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_11; targetCompatibility = JavaVersion.VERSION_11 }
     buildFeatures { compose = true }
 }
