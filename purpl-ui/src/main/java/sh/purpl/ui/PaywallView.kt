@@ -9,11 +9,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
@@ -32,6 +39,12 @@ public data class PaywallStyle(
     // 상품 카드 배경 색상, 지정하지 않으면 테마의 surfaceContainerLow
     /** The product card background color. Uses the Material theme surfaceContainerLow color when unspecified. */
     val productCardColor: Color = Color.Unspecified,
+    // 선택한 상품 카드의 테두리 브러시, 지정하지 않으면 tintColor
+    /** The selected border brush of the default product card. Uses [tintColor] when unspecified. */
+    val selectedBorderBrush: Brush? = null,
+    // 선택한 상품 카드의 테두리 두께
+    /** The selected border width of the default product card. */
+    val selectedBorderLineWidth: Dp = 1.5.dp,
 )
 
 // 사용자 정의 구매 카드에 전달하는 실제 스토어 옵션
@@ -148,7 +161,7 @@ public fun PaywallView(
                     val context = PaywallProductContext(option, option.identifier == selected?.identifier, !state.busy, title, display?.description,
                         isOwned = purchaseOwnership(option, state.customerInfo) == PaywallPurchaseOwnership.Owned)
                     if (productCard != null) productCard(context) { model.select(option.identifier) }
-                    else DefaultPaywallProductCard(context, tint, cardColor) { model.select(option.identifier) }
+                    else DefaultPaywallProductCard(context, tint, cardColor, style.selectedBorderBrush, style.selectedBorderLineWidth) { model.select(option.identifier) }
                 }
                 state.error?.let { error -> item {
                     Text(purchaseErrorText(error), Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
@@ -208,14 +221,26 @@ private fun PaywallFooterLink(title: String, enabled: Boolean = true, onClick: (
 /** The default product card that displays actual pricing phases and selection state. */
 @Composable
 public fun DefaultPaywallProductCard(context: PaywallProductContext, tintColor: Color, backgroundColor: Color, onClick: () -> Unit) {
-    Card(onClick = onClick, enabled = context.enabled, modifier = Modifier.fillMaxWidth(),
+    DefaultPaywallProductCard(context, tintColor, backgroundColor, selectedBorderBrush = null, onClick = onClick)
+}
+
+/// 선택 테두리를 지정하는 기본 상품 카드
+@Composable
+public fun DefaultPaywallProductCard(
+    context: PaywallProductContext, tintColor: Color, backgroundColor: Color,
+    selectedBorderBrush: Brush?, selectedBorderLineWidth: Dp = 1.5.dp, onClick: () -> Unit,
+) {
+    // iOS PurplUI처럼 선택한 카드에만 테두리, 선택하지 않은 카드는 테두리 없음
+    Card(onClick = onClick, enabled = context.enabled, modifier = Modifier.fillMaxWidth().semantics {
+        role = Role.RadioButton
+        selected = context.selected
+    },
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        border = BorderStroke(if (context.selected) 2.dp else 1.dp, if (context.selected) tintColor else MaterialTheme.colorScheme.outlineVariant)) {
+        border = if (context.selected) BorderStroke(selectedBorderLineWidth, selectedBorderBrush ?: SolidColor(tintColor)) else null) {
         Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(context.title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(context.option.formattedPrice, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                RadioButton(context.selected, null, enabled = context.enabled, colors = RadioButtonDefaults.colors(selectedColor = tintColor))
             }
             if (context.isOwned) Text(stringResource(R.string.purpl_current_plan), style = MaterialTheme.typography.labelMedium, color = tintColor)
             if (context.option.kind == ProductKind.Subscription) context.option.pricingPhases.forEach { phase ->
